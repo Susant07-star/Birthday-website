@@ -24,6 +24,7 @@ const ADMIN_TAP_WINDOW = 2000;
 
 /* Default site content — used before you save anything in admin */
 const DEFAULT_CONTENT = {
+   quizEnabled: true,
   name: '',
    you: '',
   hero: 'Today is all about you — the person who makes every single day of my life brighter just by being in it. 🥰',

@@ -4,6 +4,11 @@ let ADMIN_PREVIEW = false;
 let SITE_CONTENT = { ...DEFAULT_CONTENT };
 let unlockTime = null;
 let openedGifts = [];
+let quizSecondsLeft = 30;
+let quizTimer = null;
+let quizCanAnswer = false;
+let quizMoveTimer = null;
+window._quizEnabled = true;
 
 /* ==================== BOOT ==================== */
 async function init() {
@@ -22,6 +27,8 @@ async function loadSettings() {
       unlockTime = data.unlock_time ? new Date(data.unlock_time) : null;
       window._adminEmail = data.admin_email || '';
     }
+    const { data: content } = await sb.from('site_content').select('data').eq('id', 1).single();
+    if (content && content.data) window._quizEnabled = content.data.quizEnabled !== false;
   } catch (e) { console.warn('settings:', e.message); }
 }
 
@@ -132,7 +139,10 @@ function applyContent(d) {
   if (d.typed) startTypewriter(d.typed);
   if (d.date) {
     document.getElementById('countdown').style.display = 'flex';
+    updateStartDateLabel(d.date);
     startCountdown(new Date(d.date));
+  } else {
+    document.getElementById('startDateText').style.display = 'none';
   }
   if (d.cakeName) document.getElementById('cakeName').textContent = d.cakeName;
   buildCandles(parseInt(d.cakeAge) || 5);
@@ -226,7 +236,7 @@ async function openGift(box, el) {
 
   const c = document.getElementById('giftModalContent');
   let inner = '';
-  if (box.content_type === 'photo') inner = `<img src="${esc(box.content_data)}" alt="Gift"><p>${esc(box.caption)}</p>`;
+  if (box.content_type === 'photo') inner = `${box.heading ? `<h3 class="gift-reveal-heading">${esc(box.heading)}</h3>` : ''}<img src="${esc(box.content_data)}" alt="Gift"><p>${esc(box.caption)}</p>`;
   else if (box.content_type === 'video') inner = `<video src="${esc(box.content_data)}" controls></video><p>${esc(box.caption)}</p>`;
   else if (box.content_type === 'voice') inner = `<audio src="${esc(box.content_data)}" controls autoplay></audio><p>${esc(box.caption)}</p>`;
   else inner = `<p style="font-size:1.15rem;white-space:pre-wrap">${esc(box.content_data)}</p>`;
@@ -328,6 +338,25 @@ function startTypewriter(text) {
 }
 
 let cdStarted = false;
+function updateStartDateLabel(dateString) {
+  const el = document.getElementById('startDateText');
+  if (!dateString) {
+    el.style.display = 'none';
+    return;
+  }
+
+  const start = new Date(dateString + 'T00:00:00');
+  if (Number.isNaN(start.getTime())) {
+    el.style.display = 'none';
+    return;
+  }
+
+  el.textContent = 'Started on ' + start.toLocaleDateString('en-US', {
+    year: 'numeric', month: 'long', day: 'numeric'
+  });
+  el.style.display = 'block';
+}
+
 function startCountdown(startDate) {
   if (cdStarted) return;
   cdStarted = true;
@@ -393,8 +422,9 @@ function blowCandles() {
   if (cake.classList.contains('candles-out')) return;
   cake.classList.add('candles-out');
   const wishMsg = document.getElementById('wishMsg');
-  const wish = wishMsg.textContent.trim() || '✨ Your wish is my command... Happy Birthday, my queen! 👑💕';
-  wishMsg.textContent = wish + ' Happy 19th Birthday, my love! 🎂✨';
+  const birthdayReveal = document.getElementById('birthdayReveal');
+  if (birthdayReveal) birthdayReveal.style.display = 'block';
+  if (!wishMsg.textContent.trim()) wishMsg.textContent = '✨ Your wish is my command... Happy Birthday, my queen! 👑💕';
   wishMsg.style.display = 'block';
   burst(250);
   setTimeout(() => burst(200), 700);
@@ -524,6 +554,119 @@ function esc(s) {
 
 function startSite() {
   observeCards();
+  if (!ADMIN_PREVIEW && window._quizEnabled !== false) openQuizGate();
+}
+
+/* ==================== BIRTHDAY QUESTION GATE ==================== */
+function openQuizGate() {
+  const overlay = document.getElementById('quizOverlay');
+  if (!overlay || overlay.classList.contains('open')) return;
+  overlay.classList.add('open');
+  document.body.classList.add('quiz-locked');
+  quizSecondsLeft = 30;
+  quizCanAnswer = false;
+  document.getElementById('quizSeconds').textContent = quizSecondsLeft;
+  document.getElementById('quizStatus').textContent = 'The answers are shy for 30 seconds...';
+  bindQuizOptions();
+  arrangeInitialQuizOptions();
+  clearInterval(quizTimer);
+  quizTimer = setInterval(() => {
+    quizSecondsLeft--;
+    document.getElementById('quizSeconds').textContent = quizSecondsLeft;
+    if (quizSecondsLeft <= 0) finishQuizWaiting();
+  }, 1000);
+}
+
+function bindQuizOptions() {
+  document.querySelectorAll('.quiz-option').forEach(option => {
+    option.onclick = event => {
+      moveQuizOption(option, { x: event.clientX, y: event.clientY });
+      option.blur();
+      document.getElementById('quizStatus').textContent = 'Not yet... wait for the timer 💕';
+    };
+    option.onpointerenter = event => { if (!quizCanAnswer) moveQuizOption(option, { x: event.clientX, y: event.clientY }); };
+    option.onpointerdown = event => {
+      if (!quizCanAnswer) moveQuizOption(option, { x: event.clientX, y: event.clientY });
+      option.blur();
+    };
+  });
+}
+
+function finishQuizWaiting() {
+  clearInterval(quizTimer);
+  quizCanAnswer = true;
+  document.querySelectorAll('.quiz-option').forEach(option => option.style.transform = '');
+  const status = document.getElementById('quizStatus');
+  status.className = 'quiz-status pop-message';
+  status.textContent = "You don't know about him... so sad 😢";
+  setTimeout(() => {
+    status.className = 'quiz-status entering-message';
+    status.textContent = 'Now entering to your surprise... ✨';
+    setTimeout(unlockQuizGate, 4000);
+  }, 4000);
+}
+
+function arrangeInitialQuizOptions() {
+  const arena = document.getElementById('quizArena');
+  const options = [...document.querySelectorAll('.quiz-option')];
+  const isPhone = window.innerWidth <= 600;
+  const buttonWidth = Math.min(175, Math.max(120, arena.clientWidth * (isPhone ? 0.42 : 0.18)));
+  const positions = isPhone
+    ? [{ left: 0.04, top: 14 }, { left: 0.54, top: 14 }, { left: 0.04, top: 88 }, { left: 0.54, top: 88 }]
+    : [{ left: 0.03, top: 14 }, { left: 0.28, top: 14 }, { left: 0.53, top: 14 }, { left: 0.78, top: 14 }];
+  options.forEach((option, index) => {
+    option.style.width = buttonWidth + 'px';
+    option.style.left = (arena.clientWidth * positions[index].left) + 'px';
+    option.style.top = positions[index].top + 'px';
+    option.style.right = 'auto';
+    option.style.bottom = 'auto';
+  });
+}
+
+function arrangeQuizOptions() {
+  const arena = document.getElementById('quizArena');
+  const options = [...document.querySelectorAll('.quiz-option')];
+  const positions = [];
+  options.forEach(option => {
+    const width = option.offsetWidth;
+    const height = option.offsetHeight;
+    let position = null;
+    for (let attempt = 0; attempt < 80 && !position; attempt++) {
+      const candidate = { left: 10 + Math.random() * Math.max(10, arena.clientWidth - width - 20), top: 10 + Math.random() * Math.max(10, arena.clientHeight - height - 20), width, height };
+      if (positions.every(existing => candidate.left + candidate.width + 12 < existing.left || candidate.left > existing.left + existing.width + 12 || candidate.top + candidate.height + 12 < existing.top || candidate.top > existing.top + existing.height + 12)) position = candidate;
+    }
+    if (position) {
+      option.style.left = position.left + 'px'; option.style.top = position.top + 'px';
+      option.style.right = 'auto'; option.style.bottom = 'auto'; positions.push(position);
+    }
+  });
+}
+
+function moveQuizOption(option, pointerPoint = null) {
+  const arena = document.getElementById('quizArena');
+  const width = option.offsetWidth;
+  const height = option.offsetHeight;
+  const arenaRect = arena.getBoundingClientRect();
+  const avoidPoint = pointerPoint ? { x: pointerPoint.x - arenaRect.left, y: pointerPoint.y - arenaRect.top } : null;
+  const minimumPointerDistance = Math.max(90, Math.min(arena.clientWidth, arena.clientHeight) * 0.35);
+  const others = [...document.querySelectorAll('.quiz-option')].filter(item => item !== option).map(item => ({ left: item.offsetLeft, top: item.offsetTop, width: item.offsetWidth, height: item.offsetHeight }));
+  for (let attempt = 0; attempt < 160; attempt++) {
+    const left = 10 + Math.random() * Math.max(10, arena.clientWidth - width - 20);
+    const top = 10 + Math.random() * Math.max(10, arena.clientHeight - height - 20);
+    const centerX = left + width / 2;
+    const centerY = top + height / 2;
+    const farFromPointer = !avoidPoint || Math.hypot(centerX - avoidPoint.x, centerY - avoidPoint.y) >= minimumPointerDistance;
+    if (farFromPointer && others.every(existing => left + width + 12 < existing.left || left > existing.left + existing.width + 12 || top + height + 12 < existing.top || top > existing.top + existing.height + 12)) {
+      option.style.left = left + 'px'; option.style.top = top + 'px'; option.style.right = 'auto'; option.style.bottom = 'auto';
+      return;
+    }
+  }
+}
+
+function unlockQuizGate() {
+  clearInterval(quizTimer);
+  document.getElementById('quizOverlay').classList.remove('open');
+  document.body.classList.remove('quiz-locked');
 }
 
 /* ==================== GO! ==================== */

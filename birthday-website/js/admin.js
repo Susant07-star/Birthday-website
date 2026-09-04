@@ -65,6 +65,7 @@ async function loadDashboard() {
   try {
     const { data } = await sb.from('site_content').select('data').eq('id', 1).single();
     const d = (data && data.data) ? { ...DEFAULT_CONTENT, ...data.data } : { ...DEFAULT_CONTENT };
+    document.getElementById('inpQuizEnabled').checked = d.quizEnabled !== false;
     document.getElementById('inpName').value = d.name || '';
     document.getElementById('inpYou').value = d.you || '';
     document.getElementById('inpHero').value = d.hero || '';
@@ -178,7 +179,13 @@ async function saveSettings() {
     const { error } = await sb.from('site_settings')
       .update({ admin_email: document.getElementById('inpEmail').value }).eq('id', 1);
     if (error) throw error;
-    alert('✅ Settings saved!');
+    const { data } = await sb.from('site_content').select('data').eq('id', 1).single();
+    const content = data && data.data ? data.data : {};
+    content.quizEnabled = document.getElementById('inpQuizEnabled').checked;
+    const { error: contentError } = await sb.from('site_content').upsert({ id: 1, data: content, updated_at: new Date() });
+    if (contentError) throw contentError;
+    window._quizEnabled = content.quizEnabled;
+    document.getElementById('settingsMsg').textContent = '✅ Settings saved!';
   } catch (e) { alert('❌ ' + e.message); }
 }
 
@@ -239,7 +246,7 @@ async function addGiftBox() {
   try {
     const { data: boxes } = await sb.from('gift_boxes').select('id');
     const { error } = await sb.from('gift_boxes').insert({
-      position: (boxes || []).length + 1, content_type: 'text', content_data: '', caption: ''
+      position: (boxes || []).length + 1, content_type: 'text', content_data: '', caption: '', heading: ''
     });
     if (error) throw error;
     renderGiftEditor();
@@ -255,9 +262,12 @@ async function removeGiftBox(id) {
 async function renderGiftEditor() {
   const el = document.getElementById('giftEditor');
   let boxes = [];
+  let photos = [];
   try {
     const { data } = await sb.from('gift_boxes').select('*').order('position');
     if (data) boxes = data;
+    const { data: media } = await sb.from('media_files').select('*').eq('type', 'photos').order('id');
+    photos = media || [];
   } catch (e) {}
   if (!boxes.length) { el.innerHTML = '<p class="file-hint">No gift boxes yet — click "➕ Add Gift Box" above!</p>'; return; }
 
@@ -266,29 +276,94 @@ async function renderGiftEditor() {
       <div class="ge-head">🎁 Gift Box #${b.position}
         <button class="manage-del" onclick="removeGiftBox(${b.id})">🗑 Remove</button>
       </div>
+      ${b.position === 2 ? `<label>Heading</label>
+      <input type="text" id="ghead_${b.id}" value="${esc(b.heading || '')}" placeholder="My Promise to You 💗">` : ''}
       <label>What's inside?</label>
-      <select id="gtype_${b.id}">
+      <select id="gtype_${b.id}" onchange="giftTypeChanged(${b.id}, this.value)">
         <option value="text" ${b.content_type==='text'?'selected':''}>📝 Text Message</option>
         <option value="photo" ${b.content_type==='photo'?'selected':''}>📸 Photo</option>
         <option value="video" ${b.content_type==='video'?'selected':''}>🎬 Video</option>
         <option value="voice" ${b.content_type==='voice'?'selected':''}>🎤 Voice Note</option>
       </select>
-      <label>Content (text message OR media URL — upload media in 📸 Media tab first, then paste its URL here)</label>
-      <textarea id="gdata_${b.id}" style="min-height:60px">${esc(b.content_data)}</textarea>
+      <div id="gmedia_${b.id}">${giftMediaField(b, photos)}</div>
       <label>Caption (small text under the gift)</label>
-      <input type="text" id="gcap_${b.id}" value="${esc(b.caption)}">
+      <input type="text" id="gcap_${b.id}" value="${esc(b.caption || '')}" placeholder="A short message under the gift">
       <button class="btn-primary" onclick="saveGift(${b.id})">💾 Save Gift #${b.position}</button>
     </div>
   `).join('');
 }
 
+function giftMediaField(box, photos) {
+  if (box.content_type === 'text') {
+    return `<label>Message</label><textarea id="gdata_${box.id}" style="min-height:80px" placeholder="Write the gift message here...">${esc(box.content_data || '')}</textarea>`;
+  }
+  const accept = box.content_type === 'photo' ? 'image/*' : box.content_type === 'video' ? 'video/*' : 'audio/*';
+  const label = box.content_type === 'photo' ? 'photo' : box.content_type === 'video' ? 'video' : 'audio';
+  const picker = box.position === 2 && box.content_type === 'photo' ? `<label>Or choose a photo from uploaded memories</label>
+    <div class="gift-photo-picker" id="gphotos_${box.id}">
+      ${photos.length ? photos.map(p => `<button type="button" class="gift-photo-option ${box.content_data === p.url ? 'selected' : ''}" data-url="${esc(p.url)}" onclick="chooseGiftPhoto(${box.id}, this)"><img src="${esc(p.url)}" alt="Uploaded memory"></button>`).join('') : '<p class="file-hint">No uploaded photos yet.</p>'}
+    </div>` : '';
+  return `${picker}<label>Upload ${label}</label>
+    <div class="gift-upload-zone" id="gdrop_${box.id}" ondragover="event.preventDefault(); this.classList.add('drag-over')" ondragleave="this.classList.remove('drag-over')" ondrop="handleGiftDrop(event, ${box.id}, '${box.content_type}')" onclick="document.getElementById('gfile_${box.id}').click()">
+      <strong>📁 Drop ${label} here or browse</strong>
+      <input type="file" id="gfile_${box.id}" accept="${accept}" onclick="event.stopPropagation()" onchange="uploadGiftMedia(${box.id}, this, '${box.content_type}')">
+    </div>
+    <p class="file-hint" id="gstatus_${box.id}">${box.content_data ? 'A file is already selected.' : 'Choose a file to upload.'}</p>
+    <input type="hidden" id="gdata_${box.id}" value="${esc(box.content_data || '')}">`;
+}
+
+function giftTypeChanged(id, type) {
+  const box = { id, position: 0, content_type: type, content_data: '', caption: '' };
+  const current = document.getElementById('gdata_' + id)?.value || '';
+  box.content_data = current;
+  document.getElementById('gmedia_' + id).innerHTML = giftMediaField(box, []);
+}
+
+function handleGiftDrop(dropEvent, id, type) {
+  dropEvent.preventDefault();
+  dropEvent.currentTarget.classList.remove('drag-over');
+  const input = document.getElementById('gfile_' + id);
+  const file = Array.from(dropEvent.dataTransfer.files).find(item => item.type.startsWith(type === 'photo' ? 'image/' : type === 'video' ? 'video/' : 'audio/'));
+  if (!file) { alert('Please drop the correct file type for this gift.'); return; }
+  const transfer = new DataTransfer();
+  transfer.items.add(file);
+  input.files = transfer.files;
+  uploadGiftMedia(id, input, type);
+}
+
+async function uploadGiftMedia(id, input, type) {
+  const file = input.files[0];
+  if (!file) return;
+  const status = document.getElementById('gstatus_' + id);
+  status.textContent = 'Uploading...';
+  try {
+    const { url } = await uploadToStorage(type, file);
+    document.getElementById('gdata_' + id).value = url;
+    status.textContent = 'Uploaded and ready to save.';
+  } catch (e) {
+    status.textContent = 'Upload failed.';
+    alert('❌ Upload failed: ' + e.message);
+  }
+}
+
+function chooseGiftPhoto(id, button) {
+  const contentField = document.getElementById('gdata_' + id) || document.getElementById('gphoto_' + id);
+  contentField.value = button.dataset.url;
+  document.querySelectorAll('#gphotos_' + id + ' .gift-photo-option').forEach(option => option.classList.remove('selected'));
+  button.classList.add('selected');
+}
+
 async function saveGift(id) {
   try {
-    const { error } = await sb.from('gift_boxes').update({
+    const gift = {
       content_type: val('gtype_' + id),
       content_data: val('gdata_' + id),
       caption: val('gcap_' + id)
-    }).eq('id', id);
+    };
+    const heading = document.getElementById('ghead_' + id);
+    if (heading) gift.heading = heading.value;
+    if (gift.content_type !== 'text' && !gift.content_data) throw new Error('Upload or choose a file for this gift first.');
+    const { error } = await sb.from('gift_boxes').update(gift).eq('id', id);
     if (error) throw error;
     alert('✅ Gift saved! She opens it on her birthday 🎁');
   } catch (e) { alert('❌ ' + e.message); }
@@ -304,17 +379,35 @@ async function uploadToStorage(type, file) {
   return { url: data.publicUrl, path };
 }
 
-async function uploadMedia(type, inputId) {
-  const file = document.getElementById(inputId).files[0];
-  if (!file) { alert('Choose a file first!'); return; }
-  const btn = event.target;
+function handleMediaDrop(dropEvent, inputId, type) {
+  dropEvent.preventDefault();
+  dropEvent.currentTarget.classList.remove('drag-over');
+  const input = document.getElementById(inputId);
+  const files = Array.from(dropEvent.dataTransfer.files).filter(file =>
+    type === 'photos' ? file.type.startsWith('image/') : file.type.startsWith('video/'));
+  if (!files.length) { alert(`Drop ${type === 'photos' ? 'image' : 'video'} files only.`); return; }
+  const transfer = new DataTransfer();
+  files.forEach(file => transfer.items.add(file));
+  input.files = transfer.files;
+  uploadMedia(type, inputId, dropEvent.currentTarget.nextElementSibling);
+}
+
+async function uploadMedia(type, inputId, button = event.target) {
+  const input = document.getElementById(inputId);
+  const files = Array.from(input.files);
+  if (!files.length) { alert('Choose at least one file first!'); return; }
+  const btn = button;
   btn.disabled = true;
   const orig = btn.textContent; btn.textContent = '⏳ Uploading...';
   try {
-    const { url, path } = await uploadToStorage(type, file);
-    await sb.from('media_files').insert({ type, url, path });
+    for (const file of files) {
+      const { url, path } = await uploadToStorage(type, file);
+      const { error } = await sb.from('media_files').insert({ type, url, path });
+      if (error) throw error;
+    }
+    input.value = '';
     renderLists();
-    alert('✅ Uploaded! ☁️');
+    alert(`✅ Uploaded ${files.length} ${type === 'photos' ? 'photo(s)' : 'video(s)'}! ☁️`);
   } catch (e) { alert('❌ Upload failed: ' + e.message + '\n\nIf this says "Bucket not found", run the storage section in the SQL file in Supabase SQL Editor.'); }
   btn.disabled = false; btn.textContent = orig;
 }

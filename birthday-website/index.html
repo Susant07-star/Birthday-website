@@ -7,7 +7,7 @@
 <link rel="manifest" href="manifest.json">
 <title>A Surprise For You 💕</title>
 <link href="https://fonts.googleapis.com/css2?family=Dancing+Script:wght@600;700&family=Poppins:wght@300;400;600&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="css/style.css">
+<link rel="stylesheet" href="css/style.css?v=2">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="https://cdn.jsdelivr.net/npm/nepali-date-converter@3.4.0/dist/nepali-date-converter.umd.js"></script>
 </head>
@@ -19,6 +19,23 @@
 <!-- ============ ADMIN ENTRY (hidden top-left dot, all screens) ============ -->
 <div class="admin-dot" id="adminDot" title=""></div>
 <button class="admin-btn admin-entry" id="adminBtn" onclick="openAdmin()" title="Open admin panel">⚙️</button>
+
+<!-- ============ BIRTHDAY QUESTION GATE ============ -->
+<div class="quiz-overlay" id="quizOverlay" aria-modal="true" role="dialog">
+  <div class="quiz-card">
+    <div class="quiz-kicker">A little test of your love</div>
+    <div class="quiz-timer" aria-live="polite"><span id="quizSeconds">30</span><small>seconds</small></div>
+    <h2>What does Badar love the most?</h2>
+    <p class="quiz-intro">How much do you know him? Try to choose an answer.</p>
+    <div class="quiz-arena" id="quizArena">
+      <button class="quiz-option option-one" data-answer="family" type="button">His mom and dad</button>
+      <button class="quiz-option option-two" data-answer="code" type="button">Code</button>
+      <button class="quiz-option option-three" data-answer="you" type="button">You</button>
+      <button class="quiz-option option-four" data-answer="none" type="button">None</button>
+    </div>
+    <p class="quiz-status" id="quizStatus" aria-live="polite">The answers are shy for 30 seconds...</p>
+  </div>
+</div>
 
 <!-- ================================================================
      LOCK SCREEN — shown until unlock_time. She CANNOT see the site.
@@ -80,7 +97,7 @@
         <input type="time" id="inpUnlockTime" value="00:00">
         <p class="file-hint">The website will unlock at this exact date and time in Nepal (Asia/Kathmandu).</p>
         <div class="lock-btns">
-          <button class="btn-danger" onclick="setTestingMode()">🧪 Testing Mode (Open Now)</button>
+          <button class="btn-danger" onclick="setTestingMode()">⏱️ Reset Time & Open App Now</button>
           <button class="btn-primary" onclick="setUnlockTime()">🔒 Lock & Set Opening Time</button>
         </div>
         <p class="admin-msg" id="lockMsg"></p>
@@ -90,7 +107,9 @@
         <h4>⚙️ Settings</h4>
         <label>📧 Your Email (for her reply notification)</label>
         <input type="email" id="inpEmail" placeholder="you@example.com">
+        <label class="setting-toggle"><input type="checkbox" id="inpQuizEnabled"> <span>Show the quiz question before opening</span></label>
         <button class="btn-primary" onclick="saveSettings()">💾 Save Settings</button>
+        <p class="admin-msg" id="settingsMsg"></p>
       </div>
 
       <div class="tab-btns">
@@ -127,7 +146,7 @@
       <div class="tab-pane" id="tabStory">
         <p class="tab-desc">👇 Middle sections: together-counter, wish msg, love letter</p>
         <label>⏳ "Our Time Together" start date</label>
-        <input type="date" id="inpDate">
+        <input type="date" id="inpDate" min="2000-01-01" max="2100-12-31">
         <label>🎁 Wish Message (after candles blown)</label>
         <input type="text" id="inpWish">
         >💌 Love Letter</label>
@@ -201,14 +220,22 @@
           <button onclick="showSubTab('subMusic',this)">🎵 Music</button>
         </div>
         <div class="sub-tab active" id="subPhotos">
-          <input type="file" id="photoFile" accept="image/*">
-          <button class="btn-primary" onclick="uploadMedia('photos','photoFile')">📸 Upload Photo</button>
+          <div class="media-drop-zone" onclick="document.getElementById('photoFile').click()" ondragover="event.preventDefault(); this.classList.add('drag-over')" ondragleave="this.classList.remove('drag-over')" ondrop="handleMediaDrop(event,'photoFile','photos')">
+            <strong>📸 Drop photos here</strong>
+            <span>or click to choose multiple images</span>
+            <input type="file" id="photoFile" accept="image/*" multiple onclick="event.stopPropagation()">
+          </div>
+          <button class="btn-primary" onclick="uploadMedia('photos','photoFile',this)">📸 Upload Photos</button>
           <div class="manage-list" id="photoList"></div>
         </div>
         <div class="sub-tab" id="subVideos">
-          <input type="file" id="videoFile" accept="video/*">
+          <div class="media-drop-zone" onclick="document.getElementById('videoFile').click()" ondragover="event.preventDefault(); this.classList.add('drag-over')" ondragleave="this.classList.remove('drag-over')" ondrop="handleMediaDrop(event,'videoFile','videos')">
+            <strong>🎬 Drop videos here</strong>
+            <span>or click to choose multiple videos</span>
+            <input type="file" id="videoFile" accept="video/*" multiple onclick="event.stopPropagation()">
+          </div>
           <p class="file-hint">Keep under 50MB.</p>
-          <button class="btn-primary" onclick="uploadMedia('videos','videoFile')">🎬 Upload Video</button>
+          <button class="btn-primary" onclick="uploadMedia('videos','videoFile',this)">🎬 Upload Videos</button>
           <div class="manage-list" id="videoList"></div>
         </div>
         <div class="sub-tab" id="subMusic">
@@ -246,11 +273,20 @@
   <div class="name" id="heroName">My Beautiful Love 💖</div>
   <p id="heroMsg"></p>
   <div id="typed"><span id="typedText"></span><span class="cursor">|</span></div>
-  <div class="bounce" style="margin-top:50px;font-size:2rem">⬇️</div>
+  <div class="journey-guide" aria-label="How to enjoy your birthday surprise">
+    <strong>Here is how to enjoy your surprise 💕</strong>
+    <span>1. Read and scroll down slowly</span>
+    <span>2. Tap anything that says “Tap me”</span>
+    <span>3. Keep scrolling until you reach the end</span>
+  </div>
+  <button class="scroll-next" type="button" onclick="document.getElementById('timeTogether').scrollIntoView({behavior:'smooth'})">
+    <span>Start the surprise</span><span class="bounce">⬇️</span>
+  </button>
 </div>
 
-<section>
+<section id="timeTogether">
   <h2>Our Time Together ⏳</h2>
+  <p class="section-hint" id="startDateText" style="display:none"></p>
   <div class="countdown" id="countdown" style="display:none">
     <div class="cd-box"><div class="cd-num" id="cdD">0</div><div class="cd-label">Days</div></div>
     <div class="cd-box"><div class="cd-num" id="cdH">0</div><div class="cd-label">Hours</div></div>
@@ -262,19 +298,8 @@
 <!-- FEATURE: slow ballroom dance -->
 <section class="ballroom-section">
   <h2>Our Little Dance 💃</h2>
-  <div class="ballroom-stage" role="img" aria-label="A couple dancing together and finishing with a romantic dip">
-    <div class="ballroom-floor"></div>
-    <div class="ballroom-pair">
-      <div class="ballroom-dancer ballroom-boy">
-        <span class="ballroom-figure">🕺</span>
-        <span class="ballroom-name" id="ballroomNameYou">Me</span>
-      </div>
-      <span class="ballroom-hands">🤝</span>
-      <div class="ballroom-dancer ballroom-girl">
-        <span class="ballroom-figure">💃</span>
-        <span class="ballroom-name" id="ballroomNameHer">You</span>
-      </div>
-    </div>
+  <div class="ballroom-stage" role="group" aria-label="A couple dancing together">
+    <video class="ballroom-video" src="public/couple-dancing.mp4" autoplay muted loop playsinline preload="metadata" aria-label="A couple dancing together"></video>
   </div>
   <p class="section-hint ballroom-caption">One turn, one dip, and forever in your arms 💕</p>
 </section>
@@ -282,13 +307,15 @@
 <!-- FEATURE 11: cake -->
 <section>
   <h2>Make a Wish, My Love! 🕯️</h2>
+  <p class="action-guide">👇 This is the first special surprise: tap the cake to blow out the candles!</p>
   <div class="cake" id="cake" onclick="blowCandles()">
     <div class="candles" id="candleRow"></div>
     <div class="layer layer-1"><div class="icing"></div></div>
     <div class="layer layer-2"><div class="icing"></div></div>
     <div class="layer layer-3"><div class="icing cake-name-band" id="cakeName">Happy Birthday!</div></div>
   </div>
-  <p class="cake-hint">👆 Tap the cake to blow out the candles!</p>
+  <p class="cake-hint">👆 Tap the cake once, then wait for the magic ✨</p>
+  <p id="birthdayReveal">Happy 19th Birthday, my love! 🎂✨</p>
   <p id="wishMsg"></p>
 </section>
 
@@ -301,7 +328,7 @@
 <!-- FEATURE 2: open when letters -->
 <section>
   <h2>Open When... Envelopes 💌</h2>
-  <p class="section-hint">Sealed with love — tap an envelope when the moment is right 🥹</p>
+  <p class="action-guide">💌 Tap any envelope to open a personal message. You can open them one by one.</p>
   <div class="envelope-grid" id="envelopeGrid"></div>
 </section>
 
@@ -318,7 +345,7 @@
 <!-- FEATURE 3: mystery gift boxes (birthday only) -->
 <section>
   <h2>Mystery Gift Boxes 🎁</h2>
-  <p class="section-hint" id="giftHint">🎁 Gifts unlock on your birthday, my love!</p>
+  <p class="action-guide" id="giftHint">🎁 Tap each gift box to see what is inside!</p>
   <div class="gift-grid" id="giftGrid"></div>
 </section>
 
@@ -336,7 +363,7 @@
   <div class="reasons">
     <div class="card"><div class="emoji">😊</div><h3>Your Smile</h3><p>It lights up my whole world.</p></div>
     <div class="card"><div class="emoji">🤗</div><h3>Your Hugs</h3><p>The safest place on earth.</p></div>
-    <div class="card"><div class="emoji">😂</div><h3>Your Laugh</h3><p>The most beautiful sound ever.</p></div>
+    <div class="card"><div class="emoji">👀</div><h3>Your Eyes</h3><p>The most beautiful place I have ever gotten lost in.</p></div>
     <div class="card"><div class="emoji">💖</div><h3>Your Heart</h3><p>So kind and caring to everyone.</p></div>
     <div class="card"><div class="emoji">🌟</div><h3>Your Spirit</h3><p>Strong, brave, inspiring.</p></div>
     <div class="card"><div class="emoji">👫</div><h3>You</h3><p>Simply being you is enough.</p></div>
@@ -364,12 +391,14 @@
 
 <section>
   <h2>Love Fortune Cookie 🥠</h2>
+  <p class="action-guide">🥠 Tap the button for a little message made just for you.</p>
   <button class="cookie-btn" onclick="getFortune()">🥠 Crack Open a Fortune</button>
   <div id="fortune"></div>
 </section>
 
 <section>
   <h2>Our Beautiful Memories 📸</h2>
+  <p class="action-guide">📸 Tap any photo to see it bigger.</p>
   <div class="gallery" id="gallery"></div>
 </section>
 
@@ -383,6 +412,10 @@
   <div class="timeline">
     <div class="tl-item"><div class="tl-date">The Beginning</div><h4>✨ The Day We Met</h4><p>The day my life changed forever, and I didn't even know it yet.</p></div>
     <div class="tl-item"><div class="tl-date">Falling</div><h4>💭 First "I Love You"</h4><p>Three words that made everything make sense.</p></div>
+    <div class="tl-item"><div class="tl-date">The Little Things</div><h4>🌷 Ordinary Moments</h4><p>Some of my favorite memories are the simple moments that feel special because they are shared with you.</p></div>
+    <div class="tl-item"><div class="tl-date">Always There</div><h4>🤍 A Safe Place</h4><p>With you, I can be completely myself, on the loud days and the quiet ones too.</p></div>
+    <div class="tl-item"><div class="tl-date">Growing Together</div><h4>🌱 Becoming Better</h4><p>Life feels lighter when we cheer each other on and keep choosing kindness.</p></div>
+    <div class="tl-item"><div class="tl-date">Our Favorite Feeling</div><h4>😊 The Easy Smiles</h4><p>There is something beautiful about how quickly an ordinary day can turn into a happy one.</p></div>
     <div class="tl-item"><div class="tl-date">Today</div><h4>🎂 Your Birthday</h4><p>Celebrating the most important person in my life.</p></div>
     <div class="tl-item"><div class="tl-date">Forever</div><h4>♾️ And Always</h4><p>Every day after this one — together.</p></div>
   </div>
@@ -399,7 +432,7 @@
 <!-- FEATURE 14: her reply (always last) -->
 <section>
   <h2>Reply to My Heart 💬</h2>
-  <p class="section-hint">Now it's your turn... tell me anything, my love 🥰</p>
+  <p class="action-guide">💬 You found the end! Write anything you feel, then tap “Send My Reply”.</p>
   <div class="reply-box">
     <textarea id="replyText" placeholder="Write your reply here... he's waiting 🥹"></textarea>
     <button class="cookie-btn" onclick="sendReply()">💌 Send My Reply</button>
@@ -419,7 +452,7 @@ if ('serviceWorker' in navigator) {
 </script>
 <script src="js/supabase-config.js"></script>
 <script src="js/messages.js"></script>
-<script src="js/app.js"></script>
+<script src="js/app.js?v=2"></script>
 <script src="js/admin.js"></script>
 </body>
 </html>

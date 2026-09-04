@@ -56,8 +56,11 @@ CREATE TABLE IF NOT EXISTS gift_boxes (
   content_type TEXT DEFAULT 'text',  -- 'text' | 'photo' | 'video' | 'voice'
   content_data TEXT DEFAULT '',      -- text message OR media URL
   caption TEXT DEFAULT '',           -- caption/label
+  heading TEXT DEFAULT '',           -- optional heading shown above a photo gift
   created_at TIMESTAMPTZ DEFAULT NOW()
 );
+
+ALTER TABLE gift_boxes ADD COLUMN IF NOT EXISTS heading TEXT DEFAULT '';
 
 -- ====== MESSAGES (notes/fortune) ======
 CREATE TABLE IF NOT EXISTS messages (
@@ -91,6 +94,15 @@ ALTER TABLE gift_boxes ENABLE ROW LEVEL SECURITY;
 ALTER TABLE messages ENABLE ROW LEVEL SECURITY;
 ALTER TABLE replies ENABLE ROW LEVEL SECURITY;
 ALTER TABLE push_subscriptions ENABLE ROW LEVEL SECURITY;
+
+DROP POLICY IF EXISTS "p1" ON site_content;
+DROP POLICY IF EXISTS "p2" ON site_settings;
+DROP POLICY IF EXISTS "p3" ON media_files;
+DROP POLICY IF EXISTS "p4" ON open_letters;
+DROP POLICY IF EXISTS "p5" ON gift_boxes;
+DROP POLICY IF EXISTS "p6" ON messages;
+DROP POLICY IF EXISTS "p7" ON replies;
+DROP POLICY IF EXISTS "p8" ON push_subscriptions;
 
 CREATE POLICY "p1" ON site_content FOR ALL USING (true) WITH CHECK (true);
 CREATE POLICY "p2" ON site_settings FOR ALL USING (true) WITH CHECK (true);
