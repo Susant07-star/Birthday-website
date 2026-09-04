@@ -54,10 +54,9 @@ async function loadDashboard() {
     if (settings) {
       document.getElementById('inpEmail').value = settings.admin_email || '';
       if (settings.unlock_time) {
-        // convert UTC → local for the datetime-local input
-        const d = new Date(settings.unlock_time);
-        d.setMinutes(d.getMinutes() - d.getTimezoneOffset());
-        document.getElementById('inpUnlock').value = d.toISOString().slice(0, 16);
+        const nepal = getNepalDateTime(new Date(settings.unlock_time));
+        document.getElementById('inpUnlockBs').value = nepal.bs;
+        document.getElementById('inpUnlockTime').value = nepal.time;
       }
     }
   } catch (e) {}
@@ -98,16 +97,80 @@ async function setTestingMode() {
 }
 
 async function setUnlockTime() {
-  const val = document.getElementById('inpUnlock').value;
-  if (!val) { document.getElementById('lockMsg').textContent = '⚠️ Pick a date & time first!'; return; }
-  if (!confirm('🔒 LOCK the site? She will ONLY see the countdown until: ' + new Date(val).toLocaleString())) return;
+  const bs = document.getElementById('inpUnlockBs').value.trim();
+  const time = document.getElementById('inpUnlockTime').value;
+  let utc;
   try {
-    const utc = new Date(val).toISOString(); // convert local → UTC
+    utc = nepaliDateTimeToUtc(bs, time);
+  } catch (e) {
+    document.getElementById('lockMsg').textContent = '⚠️ ' + e.message;
+    return;
+  }
+  const exact = formatNepalDateTime(utc);
+  if (!confirm('🔒 LOCK the site? It will open at ' + exact + ' (Nepal time).')) return;
+  try {
     const { error } = await sb.from('site_settings').update({ unlock_time: utc }).eq('id', 1);
     if (error) throw error;
-    document.getElementById('lockMsg').textContent = '🔒 Locked! Opens at: ' + new Date(val).toLocaleString() + ' (your time)';
+    document.getElementById('lockMsg').textContent = '🔒 Locked! Opens at: ' + exact + ' (Nepal time)';
     document.getElementById('previewBanner').style.display = 'block';
   } catch (e) { document.getElementById('lockMsg').textContent = '❌ ' + e.message; }
+}
+
+function getNepaliDateConstructor() {
+  const converter = window.NepaliDate && (window.NepaliDate.default || window.NepaliDate);
+  if (typeof converter !== 'function') throw new Error('Nepali date converter is unavailable. Check your internet connection and reload.');
+  return converter;
+}
+
+function nepaliDateTimeToUtc(bs, time) {
+  const match = bs.match(/^(\d{4})[-/](\d{1,2})[-/](\d{1,2})$/);
+  const timeMatch = (time || '').match(/^(\d{2}):(\d{2})$/);
+  if (!match) throw new Error('Enter the BS date as YYYY-MM-DD, for example 2083-05-12.');
+  if (!timeMatch) throw new Error('Choose a valid Nepal time.');
+
+  const year = Number(match[1]);
+  const month = Number(match[2]);
+  const date = Number(match[3]);
+  const hour = Number(timeMatch[1]);
+  const minute = Number(timeMatch[2]);
+  if (hour > 23 || minute > 59) throw new Error('Choose a valid Nepal time.');
+
+  if (year < 2000 || year > 2090 || month < 1 || month > 12 || date < 1 || date > 32) {
+    throw new Error('That BS date is invalid or outside the supported range (2000-2090 BS).');
+  }
+
+  const NepaliDate = getNepaliDateConstructor();
+  let nepaliDate;
+  try {
+    nepaliDate = new NepaliDate(year, month - 1, date);
+    const actual = nepaliDate.getBS();
+    if (actual.year !== year || actual.month !== month - 1 || actual.date !== date) throw new Error();
+  } catch (e) {
+    throw new Error('That BS date is invalid or outside the supported range (2000-2090 BS).');
+  }
+  const converted = nepaliDate.getAD();
+
+  // Nepal is UTC+05:45. Build UTC directly so the visitor's device timezone cannot change the result.
+  return new Date(Date.UTC(converted.year, converted.month, converted.date, hour, minute) - (5 * 60 + 45) * 60000).toISOString();
+}
+
+function getNepalDateTime(utcDate) {
+  const parts = new Intl.DateTimeFormat('en-CA', {
+    timeZone: 'Asia/Kathmandu', year: 'numeric', month: '2-digit', day: '2-digit',
+    hour: '2-digit', minute: '2-digit', hourCycle: 'h23'
+  }).formatToParts(utcDate).reduce((result, part) => ({ ...result, [part.type]: part.value }), {});
+  const adDate = new Date(Number(parts.year), Number(parts.month) - 1, Number(parts.day));
+  const NepaliDate = getNepaliDateConstructor();
+  return {
+    bs: NepaliDate.fromAD(adDate).format('YYYY-MM-DD'),
+    time: parts.hour + ':' + parts.minute
+  };
+}
+
+function formatNepalDateTime(utcDate) {
+  return new Intl.DateTimeFormat('en-GB', {
+    timeZone: 'Asia/Kathmandu', dateStyle: 'full', timeStyle: 'short'
+  }).format(new Date(utcDate));
 }
 
 async function saveSettings() {
@@ -211,10 +274,10 @@ async function renderGiftEditor() {
         <option value="voice" ${b.content_type==='voice'?'selected':''}>🎤 Voice Note</option>
       </select>
       <label>Content (text message OR media URL — upload media in 📸 Media tab first, then paste its URL here)</label>
-      <textarea id="gdata_b.id"style="min−height:60px">{b.id}" style="min-height:60px">b.id"style="min−height:60px">{esc(b.content_data)}</textarea>
+      <textarea id="gdata_${b.id}" style="min-height:60px">${esc(b.content_data)}</textarea>
       <label>Caption (small text under the gift)</label>
-      <input type="text" id="gcap_b.id"value="{b.id}" value="b.id"value="{esc(b.caption)}">
-      <button class="btn-primary" onclick="saveGift({b.id})">💾 Save Gift #{b.position}</button>
+      <input type="text" id="gcap_${b.id}" value="${esc(b.caption)}">
+      <button class="btn-primary" onclick="saveGift(${b.id})">💾 Save Gift #${b.position}</button>
     </div>
   `).join('');
 }
@@ -233,9 +296,9 @@ async function saveGift(id) {
 
 /* ==================== UPLOADS ==================== */
 async function uploadToStorage(type, file) {
-  const ext = file.name.split('.').pop();
-  const path = type + '/' + Date.now() + '.' + ext;
-  const { error } = await sb.storage.from('media').upload(path, file);
+  const safeName = file.name.replace(/[^a-z0-9._-]/gi, '-');
+  const path = type + '/' + Date.now() + '-' + safeName;
+  const { error } = await sb.storage.from('media').upload(path, file, { upsert: false, contentType: file.type || undefined });
   if (error) throw error;
   const { data } = sb.storage.from('media').getPublicUrl(path);
   return { url: data.publicUrl, path };
@@ -252,7 +315,7 @@ async function uploadMedia(type, inputId) {
     await sb.from('media_files').insert({ type, url, path });
     renderLists();
     alert('✅ Uploaded! ☁️');
-  } catch (e) { alert('❌ ' + e.message); }
+  } catch (e) { alert('❌ Upload failed: ' + e.message + '\n\nIf this says "Bucket not found", run the storage section in the SQL file in Supabase SQL Editor.'); }
   btn.disabled = false; btn.textContent = orig;
 }
 
@@ -270,7 +333,7 @@ async function uploadMusic() {
     await sb.from('media_files').insert({ type: 'music', url, path });
     renderLists();
     alert('🎵 Music set!');
-  } catch (e) { alert('❌ ' + e.message); }
+  } catch (e) { alert('❌ Upload failed: ' + e.message + '\n\nIf this says "Bucket not found", run the storage section in the SQL file in Supabase SQL Editor.'); }
   btn.disabled = false; btn.textContent = '🎵 Upload Music';
 }
 
@@ -288,7 +351,7 @@ async function uploadVoice() {
     await sb.from('media_files').insert({ type: 'voice', url, path });
     renderLists();
     alert('🎤 Voice note set! Plays after she blows the candles 😭');
-  } catch (e) { alert('❌ ' + e.message); }
+  } catch (e) { alert('❌ Upload failed: ' + e.message + '\n\nIf this says "Bucket not found", run the storage section in the SQL file in Supabase SQL Editor.'); }
   btn.disabled = false; btn.textContent = '🎤 Upload Voice Note';
 }
 
@@ -311,28 +374,28 @@ async function renderLists() {
 
     const photos = (media || []).filter(m => m.type === 'photos');
     document.getElementById('photoList').innerHTML = photos.length
-      ? photos.map(m => `<div class="manage-item"><img src="m.url"><span>Photo</span><buttononclick="deleteMedia({m.url}"><span>Photo</span><button onclick="deleteMedia(m.url"><span>Photo</span><buttononclick="deleteMedia({m.id},'${m.path}')">Delete</button></div>`).join('')
+      ? photos.map(m => `<div class="manage-item"><img src="${esc(m.url)}" alt="Photo"><span>Photo</span><button onclick="deleteMedia(${m.id}, '${esc(m.path)}')">Delete</button></div>`).join('')
       : none;
 
     const videos = (media || []).filter(m => m.type === 'videos');
     document.getElementById('videoList').innerHTML = videos.length
-      ? videos.map(m => `<div class="manage-item"><span>🎬 Video</span><button onclick="deleteMedia(m.id,′{m.id},'m.id,′{m.path}')">Delete</button></div>`).join('')
+      ? videos.map(m => `<div class="manage-item"><span>🎬 Video</span><button onclick="deleteMedia(${m.id}, '${esc(m.path)}')">Delete</button></div>`).join('')
       : none;
 
     const music = (media || []).find(m => m.type === 'music');
     document.getElementById('musicList').innerHTML = music
-      ? `<div class="manage-item"><span>🎵 Background track set</span><button onclick="deleteMedia(music.id,′{music.id},'music.id,′{music.path}')">Remove</button></div>` : none;
+      ? `<div class="manage-item"><span>🎵 Background track set</span><button onclick="deleteMedia(${music.id}, '${esc(music.path)}')">Remove</button></div>` : none;
 
     const voice = (media || []).find(m => m.type === 'voice');
     document.getElementById('voiceList').innerHTML = voice
       ? `<div class="manage-item"><audio src="${voice.url}" controls></audio><span>🎤 Voice note set</span><button onclick="deleteMedia(${voice.id}, '${voice.path}')">Remove</button></div>` : none;
 
     document.getElementById('openLetterList').innerHTML = (letters && letters.length)
-      ? letters.map(l => `<div class="manage-item"><span>💌 esc(l.title)</span><buttononclick="deleteOpenLetter({esc(l.title)}</span><button onclick="deleteOpenLetter(esc(l.title)</span><buttononclick="deleteOpenLetter({l.id})">Delete</button></div>`).join('')
+      ? letters.map(l => `<div class="manage-item"><span>💌 ${esc(l.title)}</span><button onclick="deleteOpenLetter(${l.id})">Delete</button></div>`).join('')
       : none;
 
     document.getElementById('replyList').innerHTML = (replies && replies.length)
-      ? replies.map(r => `<div class="manage-item" style="align-items:flex-start"><span>💬 {esc(r.text)}<br><small style="color:#999">{new Date(r.created_at).toLocaleString()}</small></span><button onclick="deleteReply(${r.id})">Delete</button></div>`).join('')
+      ? replies.map(r => `<div class="manage-item" style="align-items:flex-start"><span>💬 ${esc(r.text)}<br><small style="color:#999">${new Date(r.created_at).toLocaleString()}</small></span><button onclick="deleteReply(${r.id})">Delete</button></div>`).join('')
       : '<p class="file-hint">She hasn\'t replied yet... 💕</p>';
 
     renderGiftEditor();

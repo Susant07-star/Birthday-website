@@ -19,6 +19,19 @@ CREATE TABLE IF NOT EXISTS site_settings (
 INSERT INTO site_settings (id) VALUES (1) ON CONFLICT DO NOTHING;
 
 -- ====== MEDIA ======
+INSERT INTO storage.buckets (id, name, public)
+VALUES ('media', 'media', true)
+ON CONFLICT (id) DO UPDATE SET public = EXCLUDED.public;
+
+DROP POLICY IF EXISTS "media public read" ON storage.objects;
+DROP POLICY IF EXISTS "media public upload" ON storage.objects;
+DROP POLICY IF EXISTS "media public update" ON storage.objects;
+DROP POLICY IF EXISTS "media public delete" ON storage.objects;
+CREATE POLICY "media public read" ON storage.objects FOR SELECT USING (bucket_id = 'media');
+CREATE POLICY "media public upload" ON storage.objects FOR INSERT WITH CHECK (bucket_id = 'media');
+CREATE POLICY "media public update" ON storage.objects FOR UPDATE USING (bucket_id = 'media') WITH CHECK (bucket_id = 'media');
+CREATE POLICY "media public delete" ON storage.objects FOR DELETE USING (bucket_id = 'media');
+
 CREATE TABLE IF NOT EXISTS media_files (
   id BIGSERIAL PRIMARY KEY,
   type TEXT NOT NULL,          -- 'photos' | 'videos' | 'music' | 'voice'

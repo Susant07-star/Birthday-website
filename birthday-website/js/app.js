@@ -3,6 +3,7 @@ let IS_UNLOCKED = false;
 let ADMIN_PREVIEW = false;
 let SITE_CONTENT = { ...DEFAULT_CONTENT };
 let unlockTime = null;
+let openedGifts = [];
 
 /* ==================== BOOT ==================== */
 async function init() {
@@ -121,8 +122,10 @@ async function loadAllContent() {
 function applyContent(d) {
   if (d.name) document.getElementById('heroName').textContent = 'My Beautiful ' + d.name + ' 💖';
   if (d.hero) document.getElementById('heroMsg').textContent = d.hero;
-  if (d.you) document.getElementById('danceNameYou').textContent = d.you;
-  if (d.name) document.getElementById('danceNameHer').textContent = d.name;
+  document.getElementById('danceNameYou').textContent = d.you || 'Me';
+  document.getElementById('danceNameHer').textContent = d.name || 'You';
+  document.getElementById('ballroomNameYou').textContent = d.you || 'Me';
+  document.getElementById('ballroomNameHer').textContent = d.name || 'You';
   if (d.wish) document.getElementById('wishMsg').textContent = d.wish;
   if (d.letter) document.getElementById('letterText').innerHTML = d.letter.replace(/\n/g, '<br>');
   if (d.sig) document.getElementById('sigText').innerHTML = 'Forever yours ❤️<br>' + d.sig;
@@ -133,15 +136,13 @@ function applyContent(d) {
   }
   if (d.cakeName) document.getElementById('cakeName').textContent = d.cakeName;
   buildCandles(parseInt(d.cakeAge) || 5);
-  // Map
-  if (d.mapYou && d.mapHer) {
-    document.getElementById('mapSection').style.display = 'block';
-    document.getElementById('mapYouName').textContent = d.mapYou;
-    document.getElementById('mapYouCityEl').textContent = d.mapYouCity || '';
-    document.getElementById('mapHerNameEl').textContent = d.mapHer;
-    document.getElementById('mapHerCityEl').textContent = d.mapHerCity || '';
-    document.getElementById('mapMsgEl').textContent = d.mapMsg || '';
-  }
+  const hasMap = [d.mapYou, d.mapYouCity, d.mapHer, d.mapHerCity].some(value => String(value || '').trim());
+  document.getElementById('mapSection').style.display = hasMap ? 'block' : 'none';
+  document.getElementById('mapYouName').textContent = d.mapYou || 'Your location';
+  document.getElementById('mapYouCityEl').textContent = d.mapYouCity || '';
+  document.getElementById('mapHerNameEl').textContent = d.mapHer || 'Her location';
+  document.getElementById('mapHerCityEl').textContent = d.mapHerCity || '';
+  document.getElementById('mapMsgEl').textContent = d.mapMsg || DEFAULT_CONTENT.mapMsg;
 }
 
 function buildCandles(n) {
@@ -197,7 +198,6 @@ async function loadGiftBoxes() {
   }
 
   const isBirthday = unlockTime ? new Date() >= unlockTime : true;
-  const opened = JSON.parse(localStorage.getItem('openedGifts') || '[]');
   const hint = document.getElementById('giftHint');
   hint.textContent = isBirthday
     ? 'Tap a box to open your gift, birthday girl! 🎉'
@@ -206,11 +206,11 @@ async function loadGiftBoxes() {
   grid.innerHTML = '';
   boxes.forEach(b => {
     const el = document.createElement('div');
-    const canOpen = isBirthday && !opened.includes(b.id);
-    el.className = 'gift-box' + (canOpen ? '' : lockedClass(isBirthday, opened, b.id));
+    const canOpen = isBirthday && !openedGifts.includes(b.id);
+    el.className = 'gift-box' + (canOpen ? '' : lockedClass(isBirthday, openedGifts, b.id));
     el.innerHTML = `<span class="gb-icon">${isBirthday ? '🎁' : '🔒'}</span>
       <div class="gb-label">${isBirthday ? 'Gift ' + b.position : 'Locked 🔒'}</div>
-      <div class="gb-status">${!isBirthday ? 'Opens on your birthday' : (opened.includes(b.id) ? 'Opened ✓' : 'Tap to open!')}</div>`;
+      <div class="gb-status">${!isBirthday ? 'Opens on your birthday' : (openedGifts.includes(b.id) ? 'Opened ✓' : 'Tap to open!')}</div>`;
     if (canOpen) el.onclick = () => openGift(b, el);
     grid.appendChild(el);
   });
@@ -222,15 +222,13 @@ function lockedClass(isBday, opened, id) {
 
 async function openGift(box, el) {
   el.classList.add('opened');
-  const opened = JSON.parse(localStorage.getItem('openedGifts') || '[]');
-  opened.push(box.id);
-  localStorage.setItem('openedGifts', JSON.stringify(opened));
+  if (!openedGifts.includes(box.id)) openedGifts.push(box.id);
 
   const c = document.getElementById('giftModalContent');
   let inner = '';
-  if (box.content_type === 'photo') inner = `<img src="box.contentdata"alt="Gift"><p>{box.content_data}" alt="Gift"><p>box.contentd​ata"alt="Gift"><p>{esc(box.caption)}</p>`;
-  else if (box.content_type === 'video') inner = `<video src="box.contentdata"controls></video><p>{box.content_data}" controls></video><p>box.contentd​ata"controls></video><p>{esc(box.caption)}</p>`;
-  else if (box.content_type === 'voice') inner = `<audio src="box.contentdata"controlsautoplay></audio><p>{box.content_data}" controls autoplay></audio><p>box.contentd​ata"controlsautoplay></audio><p>{esc(box.caption)}</p>`;
+  if (box.content_type === 'photo') inner = `<img src="${esc(box.content_data)}" alt="Gift"><p>${esc(box.caption)}</p>`;
+  else if (box.content_type === 'video') inner = `<video src="${esc(box.content_data)}" controls></video><p>${esc(box.caption)}</p>`;
+  else if (box.content_type === 'voice') inner = `<audio src="${esc(box.content_data)}" controls autoplay></audio><p>${esc(box.caption)}</p>`;
   else inner = `<p style="font-size:1.15rem;white-space:pre-wrap">${esc(box.content_data)}</p>`;
 
   c.innerHTML = '<div style="font-size:3rem;margin-bottom:10px">🎉</div>' + inner;
@@ -394,7 +392,10 @@ function blowCandles() {
   const cake = document.getElementById('cake');
   if (cake.classList.contains('candles-out')) return;
   cake.classList.add('candles-out');
-  document.getElementById('wishMsg').style.display = 'block';
+  const wishMsg = document.getElementById('wishMsg');
+  const wish = wishMsg.textContent.trim() || '✨ Your wish is my command... Happy Birthday, my queen! 👑💕';
+  wishMsg.textContent = wish + ' Happy 19th Birthday, my love! 🎂✨';
+  wishMsg.style.display = 'block';
   burst(250);
   setTimeout(() => burst(200), 700);
   // Play the voice note after candles 🎤

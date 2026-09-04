@@ -9,6 +9,7 @@
 <link href="https://fonts.googleapis.com/css2?family=Dancing+Script:wght@600;700&family=Poppins:wght@300;400;600&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="css/style.css">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="https://cdn.jsdelivr.net/npm/nepali-date-converter@3.4.0/dist/nepali-date-converter.umd.js"></script>
 </head>
 <body>
 
@@ -73,8 +74,11 @@
       <div class="lock-control">
         <h4>🔓 Website Opening Time (MOST IMPORTANT)</h4>
         <p class="tab-desc">Until this moment, she only sees the countdown lock screen. At this moment the site opens automatically with confetti 🎆</p>
-        <label>🎂 Opening Date & Time (her birthday!)</label>
-        <input type="datetime-local" id="inpUnlock">
+        <label>🎂 Opening Date (Nepali BS)</label>
+        <input type="text" id="inpUnlockBs" inputmode="numeric" placeholder="YYYY-MM-DD (e.g. 2083-05-12)" autocomplete="off">
+        <label>🕛 Opening Time (Nepal time)</label>
+        <input type="time" id="inpUnlockTime" value="00:00">
+        <p class="file-hint">The website will unlock at this exact date and time in Nepal (Asia/Kathmandu).</p>
         <div class="lock-btns">
           <button class="btn-danger" onclick="setTestingMode()">🧪 Testing Mode (Open Now)</button>
           <button class="btn-primary" onclick="setUnlockTime()">🔒 Lock & Set Opening Time</button>
@@ -253,6 +257,26 @@
     <div class="cd-box"><div class="cd-num" id="cdM">0</div><div class="cd-label">Minutes</div></div>
     <div class="cd-box"><div class="cd-num" id="cdS">0</div><div class="cd-label">Seconds</div></div>
   </div>
+</section>
+
+<!-- FEATURE: slow ballroom dance -->
+<section class="ballroom-section">
+  <h2>Our Little Dance 💃</h2>
+  <div class="ballroom-stage" role="img" aria-label="A couple dancing together and finishing with a romantic dip">
+    <div class="ballroom-floor"></div>
+    <div class="ballroom-pair">
+      <div class="ballroom-dancer ballroom-boy">
+        <span class="ballroom-figure">🕺</span>
+        <span class="ballroom-name" id="ballroomNameYou">Me</span>
+      </div>
+      <span class="ballroom-hands">🤝</span>
+      <div class="ballroom-dancer ballroom-girl">
+        <span class="ballroom-figure">💃</span>
+        <span class="ballroom-name" id="ballroomNameHer">You</span>
+      </div>
+    </div>
+  </div>
+  <p class="section-hint ballroom-caption">One turn, one dip, and forever in your arms 💕</p>
 </section>
 
 <!-- FEATURE 11: cake -->
