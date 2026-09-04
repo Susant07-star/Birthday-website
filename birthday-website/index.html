@@ -1,0 +1,395 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta name="theme-color" content="#ff9a9e">
+<link rel="manifest" href="manifest.json">
+<title>A Surprise For You 💕</title>
+<link href="https://fonts.googleapis.com/css2?family=Dancing+Script:wght@600;700&family=Poppins:wght@300;400;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="css/style.css">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+</head>
+<body>
+
+<canvas id="confetti"></canvas>
+<div class="hearts" id="hearts"></div>
+
+<!-- ============ ADMIN ENTRY (hidden top-left dot, all screens) ============ -->
+<div class="admin-dot" id="adminDot" title=""></div>
+
+<!-- ================================================================
+     LOCK SCREEN — shown until unlock_time. She CANNOT see the site.
+     Admin: 5 quick taps on the lock title → password → preview only.
+================================================================= -->
+<div class="pre-overlay" id="preOverlay">
+  <div class="pre-content">
+    <div class="gift-shake" id="giftShake">🎁</div>
+    <h1 class="pre-title" id="lockTitle" onclick="lockTitleTap()">Something magical is coming...</h1>
+    <p class="pre-daily" id="dailyTeaser">Loading today's message...</p>
+    <div class="countdown pre-count">
+      <div class="cd-box"><div class="cd-num" id="pD">0</div><div class="cd-label">Days</div></div>
+      <div class="cd-box"><div class="cd-num" id="pH">0</div><div class="cd-label">Hours</div></div>
+      <div class="cd-box"><div class="cd-num" id="pM">0</div><div class="cd-label">Minutes</div></div>
+      <div class="cd-box"><div class="cd-num" id="pS">0</div><div class="cd-label">Seconds</div></div>
+    </div>
+    <p class="pre-sub" id="preSub">Come back on your special day, my love 💕</p>
+    <button class="notif-btn" id="notifBtn" onclick="enableNotifications()" style="display:none">🔔 Allow Birthday Notifications</button>
+    <p class="install-hint" id="installHint">📱 Add this to your home screen so you don't miss anything!</p>
+    <button class="install-btn" id="installBtn" style="display:none">📲 Install App</button>
+
+    <!-- admin password gate (hidden until 5 taps) -->
+    <div class="admin-gate" id="adminGate">
+      <input type="password" id="adminPass" placeholder="Admin password" onkeydown="if(event.key==='Enter')adminTry()">
+      <button onclick="adminTry()">→</button>
+      <p class="admin-msg" id="adminGateMsg"></p>
+    </div>
+  </div>
+</div>
+
+<!-- ============ ADMIN MODAL (preview mode notice) ============ -->
+<div class="modal-overlay" id="adminOverlay">
+  <div class="admin-panel">
+    <div id="loginScreen">
+      <h3>🔐 Admin Login</h3>
+      <p class="sub">Only you can edit this website</p>
+      <div class="login-box">
+        <label>Enter Admin Password</label>
+        <input type="password" id="dashPass" placeholder="Password" onkeydown="if(event.key==='Enter')tryLogin()">
+        <button class="btn-primary" onclick="tryLogin()">Login →</button>
+        <p class="admin-msg" id="loginMsg"></p>
+      </div>
+      <button class="btn-secondary" onclick="closeAdmin()">Close</button>
+    </div>
+
+    <div id="dashboard" style="display:none">
+      <div class="preview-banner" id="previewBanner" style="display:none">
+        👀 PREVIEW MODE — you can see everything, but <b>she still sees the lock screen</b> until you set the opening time below.
+      </div>
+      <h3>🛠️ Admin Dashboard</h3>
+
+      <!-- 🔓 LOCK CONTROL — most important -->
+      <div class="lock-control">
+        <h4>🔓 Website Opening Time (MOST IMPORTANT)</h4>
+        <p class="tab-desc">Until this moment, she only sees the countdown lock screen. At this moment the site opens automatically with confetti 🎆</p>
+        <label>🎂 Opening Date & Time (her birthday!)</label>
+        <input type="datetime-local" id="inpUnlock">
+        <div class="lock-btns">
+          <button class="btn-danger" onclick="setTestingMode()">🧪 Testing Mode (Open Now)</button>
+          <button class="btn-primary" onclick="setUnlockTime()">🔒 Lock & Set Opening Time</button>
+        </div>
+        <p class="admin-msg" id="lockMsg"></p>
+      </div>
+
+      <div class="lock-control small">
+        <h4>⚙️ Settings</h4>
+        <label>📧 Your Email (for her reply notification)</label>
+        <input type="email" id="inpEmail" placeholder="you@example.com">
+        <button class="btn-primary" onclick="saveSettings()">💾 Save Settings</button>
+      </div>
+
+      <div class="tab-btns">
+        <button class="active" onclick="showTab('tabTop',this)">🏠 Top</button>
+        <button onclick="showTab('tabStory',this)">📖 Story</button>
+        <button onclick="showTab('tabLetters',this)">💌 Letters</button>
+        <button onclick="showTab('tabGifts',this)">🎁 Gifts</button>
+        <button onclick="showTab('tabVoice',this)">🎤 Voice</button>
+        <button onclick="showTab('tabCake',this)">🎂 Cake</button>
+        <button onclick="showTab('tabMap',this)">🌍 Map</button>
+        <button onclick="showTab('tabMedia',this)">📸 Media</button>
+        <button onclick="showTab('tabReplies',this)">💬 Replies</button>
+      </div>
+
+      <!-- TOP -->
+      <div class="tab-pane active" id="tabTop">
+        <p class="tab-desc">👇 First screen she sees AFTER the site opens</p>
+        <label>Her Name</label>
+        <input type="text" id="inpName" placeholder="e.g. Priya">
+        <label>Your Name (dancing couple 💃)</label>
+        <input type="text" id="inpYou" placeholder="e.g. Rahul">
+        <label>Hero Message (under her name)</label>
+        <textarea id="inpHero"></textarea>
+        <label>Typewriter Message</label>
+        <textarea id="inpType"></textarea>
+        <label>⏳ Lock screen title (while she waits)</label>
+        <input type="text" id="inpPreTitle">
+        <label>⏳ Lock screen subtitle</label>
+        <input type="text" id="inpPreSub">
+        <button class="btn-primary" onclick="saveSection('top')">💾 Save "Top of Page"</button>
+      </div>
+
+      <!-- STORY -->
+      <div class="tab-pane" id="tabStory">
+        <p class="tab-desc">👇 Middle sections: together-counter, wish msg, love letter</p>
+        <label>⏳ "Our Time Together" start date</label>
+        <input type="date" id="inpDate">
+        <label>🎁 Wish Message (after candles blown)</label>
+        <input type="text" id="inpWish">
+        >💌 Love Letter</label>
+        <textarea id="inpLetter" style="min-height:150px"></textarea>
+        <label>✍️ Signature</label>
+        <input type="text" id="inpSig">
+        <button class="btn-primary" onclick="saveSection('story')">💾 Save "Story Sections"</button>
+      </div>
+
+      <!-- OPEN WHEN LETTERS -->
+      <div class="tab-pane" id="tabLetters">
+        <p class="tab-desc">👇 Sealed envelopes in the "Open When..." section</p>
+        <label>Envelope Title (e.g. "Open when you miss me")</label>
+        <input type="text" id="inpLetterTitle">
+        <label>Letter Content</label>
+        <textarea id="inpLetterBody" style="min-height:120px"></textarea>
+        <button class="btn-primary" onclick="addOpenLetter()">💌 Add Sealed Letter</button>
+        <div class="manage-list" id="openLetterList"></div>
+      </div>
+
+      <!-- GIFT BOXES -->
+      <div class="tab-pane" id="tabGifts">
+        <p class="tab-desc">👇 Mystery gift boxes — she can open them ONLY on her birthday. Add/remove boxes anytime, fill contents later.</p>
+        <div class="lock-btns">
+          <button class="btn-add" onclick="addGiftBox()">➕ Add Gift Box</button>
+        </div>
+        <div id="giftEditor"></div>
+      </div>
+
+      <!-- VOICE -->
+      <div class="tab-pane" id="tabVoice">
+        <p class="tab-desc">👇 Your voice plays after she blows the candles 🎂</p>
+        <label>🎤 Upload Voice Recording</label>
+        <input type="file" id="voiceFile" accept="audio/*">
+        <button class="btn-primary" onclick="uploadVoice()">🎤 Upload Voice Note</button>
+        <div class="manage-list" id="voiceList"></div>
+      </div>
+
+      <!-- CAKE -->
+      <div class="tab-pane" id="tabCake">
+        <p class="tab-desc">👇 Birthday cake: her name in icing + candle count</p>
+        <label>Name on the cake</label>
+        <input type="text" id="inpCakeName">
+        <label>Number of candles (her age)</label>
+        <input type="number" id="inpCakeAge" min="1" max="50">
+        <button class="btn-primary" onclick="saveSection('cake')">💾 Save Cake</button>
+      </div>
+
+      <!-- MAP -->
+      <div class="tab-pane" id="tabMap">
+        <p class="tab-desc">👇 "Distance Means Nothing" two-hearts map</p>
+        <label>📍 Your Name</label>
+        <input type="text" id="inpMapYou">
+        <label>📍 Your City</label>
+        <input type="text" id="inpMapYouCity">
+        <label>📍 Her Name</label>
+        <input type="text" id="inpMapHer">
+        <label>📍 Her City</label>
+        <input type="text" id="inpMapHerCity">
+        <label>Message under the map</label>
+        <input type="text" id="inpMapMsg">
+        <button class="btn-primary" onclick="saveSection('map')">💾 Save Map</button>
+      </div>
+
+      <!-- MEDIA -->
+      <div class="tab-pane" id="tabMedia">
+        <p class="tab-desc">👇 Photos → Memories gallery · Videos → Video section · Music → 🔊 button</p>
+        <div class="tab-btns" style="margin-bottom:15px">
+          <button class="active" onclick="showSubTab('subPhotos',this)">📸 Photos</button>
+          <button onclick="showSubTab('subVideos',this)">🎬 Videos</button>
+          <button onclick="showSubTab('subMusic',this)">🎵 Music</button>
+        </div>
+        <div class="sub-tab active" id="subPhotos">
+          <input type="file" id="photoFile" accept="image/*">
+          <button class="btn-primary" onclick="uploadMedia('photos','photoFile')">📸 Upload Photo</button>
+          <div class="manage-list" id="photoList"></div>
+        </div>
+        <div class="sub-tab" id="subVideos">
+          <input type="file" id="videoFile" accept="video/*">
+          <p class="file-hint">Keep under 50MB.</p>
+          <button class="btn-primary" onclick="uploadMedia('videos','videoFile')">🎬 Upload Video</button>
+          <div class="manage-list" id="videoList"></div>
+        </div>
+        <div class="sub-tab" id="subMusic">
+          <input type="file" id="musicFile" accept="audio/*">
+          <button class="btn-primary" onclick="uploadMusic()">🎵 Upload Music</button>
+          <div class="manage-list" id="musicList"></div>
+        </div>
+      </div>
+
+      <!-- REPLIES -->
+      <div class="tab-pane" id="tabReplies">
+        <p class="tab-desc">👇 Messages SHE wrote to you 💕</p>
+        <div class="manage-list" id="replyList"></div>
+      </div>
+
+      <button class="btn-secondary" onclick="closeAdmin()">✖ Close Dashboard</button>
+    </div>
+  </div>
+</div>
+
+<div class="lightbox" id="lightbox" onclick="this.classList.remove('open')"><img id="lightboxImg" src="" alt=""></div>
+
+<!-- ================================================================
+     MAIN SITE (all content loaded from Supabase ONLY after unlock)
+================================================================= -->
+
+<!-- FEATURE 5: dancing couple -->
+<div class="hero" id="heroSection">
+  <div class="dance-scene" id="danceScene">
+    <div class="dancer">🧑<span class="dance-name" id="danceNameYou">Me</span></div>
+    <div class="dance-heart">💖</div>
+    <div class="dancer flip">👩<span class="dance-name" id="danceNameHer">You</span></div>
+  </div>
+  <h1>Happy Birthday</h1>
+  <div class="name" id="heroName">My Beautiful Love 💖</div>
+  <p id="heroMsg"></p>
+  <div id="typed"><span id="typedText"></span><span class="cursor">|</span></div>
+  <div class="bounce" style="margin-top:50px;font-size:2rem">⬇️</div>
+</div>
+
+<section>
+  <h2>Our Time Together ⏳</h2>
+  <div class="countdown" id="countdown" style="display:none">
+    <div class="cd-box"><div class="cd-num" id="cdD">0</div><div class="cd-label">Days</div></div>
+    <div class="cd-box"><div class="cd-num" id="cdH">0</div><div class="cd-label">Hours</div></div>
+    <div class="cd-box"><div class="cd-num" id="cdM">0</div><div class="cd-label">Minutes</div></div>
+    <div class="cd-box"><div class="cd-num" id="cdS">0</div><div class="cd-label">Seconds</div></div>
+  </div>
+</section>
+
+<!-- FEATURE 11: cake -->
+<section>
+  <h2>Make a Wish, My Love! 🕯️</h2>
+  <div class="cake" id="cake" onclick="blowCandles()">
+    <div class="candles" id="candleRow"></div>
+    <div class="layer layer-1"><div class="icing"></div></div>
+    <div class="layer layer-2"><div class="icing"></div></div>
+    <div class="layer layer-3"><div class="icing cake-name-band" id="cakeName">Happy Birthday!</div></div>
+  </div>
+  <p class="cake-hint">👆 Tap the cake to blow out the candles!</p>
+  <p id="wishMsg"></p>
+</section>
+
+<!-- FEATURE 2: open when letters -->
+<section>
+  <h2>Open When... Envelopes 💌</h2>
+  <p class="section-hint">Sealed with love — tap an envelope when the moment is right 🥹</p>
+  <div class="envelope-grid" id="envelopeGrid"></div>
+</section>
+
+<!-- ENVELOPE READER MODAL -->
+<div class="modal-overlay" id="letterOverlay">
+  <div class="letter-modal">
+    <div class="envelope-open-anim">💌</div>
+    <h3 id="letterModalTitle"></h3>
+    <div id="letterModalBody"></div>
+    <button class="btn-secondary" onclick="document.getElementById('letterOverlay').classList.remove('open')">Close 💌</button>
+  </div>
+</div>
+
+<!-- FEATURE 3: mystery gift boxes (birthday only) -->
+<section>
+  <h2>Mystery Gift Boxes 🎁</h2>
+  <p class="section-hint" id="giftHint">🎁 Gifts unlock on your birthday, my love!</p>
+  <div class="gift-grid" id="giftGrid"></div>
+</section>
+
+<!-- GIFT REVEAL MODAL -->
+<div class="modal-overlay" id="giftOverlay">
+  <div class="letter-modal">
+    <div class="envelope-open-anim">🎉</div>
+    <div id="giftModalContent"></div>
+    <button class="btn-secondary" onclick="document.getElementById('giftOverlay').classList.remove('open')">Close 🎁</button>
+  </div>
+</div>
+
+<section>
+  <h2>Reasons I Love You 💝</h2>
+  <div class="reasons">
+    <div class="card"><div class="emoji">😊</div><h3>Your Smile</h3><p>It lights up my whole world.</p></div>
+    <div class="card"><div class="emoji">🤗</div><h3>Your Hugs</h3><p>The safest place on earth.</p></div>
+    <div class="card"><div class="emoji">😂</div><h3>Your Laugh</h3><p>The most beautiful sound ever.</p></div>
+    <div class="card"><div class="emoji">💖</div><h3>Your Heart</h3><p>So kind and caring to everyone.</p></div>
+    <div class="card"><div class="emoji">🌟</div><h3>Your Spirit</h3><p>Strong, brave, inspiring.</p></div>
+    <div class="card"><div class="emoji">👫</div><h3>You</h3><p>Simply being you is enough.</p></div>
+  </div>
+</section>
+
+<!-- FEATURE 15: map -->
+<section id="mapSection" style="display:none">
+  <h2>Distance Means Nothing 🌍</h2>
+  <div class="map-wrap">
+    <div class="map-heart left"><span class="map-pin">📍</span><div id="mapYouName"></div><div class="map-city" id="mapYouCityEl"></div></div>
+    <div class="map-line">
+      <div class="map-beat">💓</div>
+      <svg class="map-svg" viewBox="0 0 200 20"><path d="M0,10 Q100,-10 200,10" stroke="#fff" stroke-width="2" fill="none" stroke-dasharray="6 6"><animate attributeName="stroke-dashoffset" from="24" to="0" dur="1s" repeatCount="indefinite"/></path></svg>
+    </div>
+    <div class="map-heart right"><span class="map-pin">📍</span><div id="mapHerNameEl"></div><div class="map-city" id="mapHerCityEl"></div></div>
+  </div>
+  <p class="map-msg" id="mapMsgEl"></p>
+</section>
+
+<section>
+  <h2>Note of the Day 💌</h2>
+  <div class="daily-note"><div class="note-emoji" id="noteEmoji">💕</div><div id="noteText"></div></div>
+</section>
+
+<section>
+  <h2>Love Fortune Cookie 🥠</h2>
+  <button class="cookie-btn" onclick="getFortune()">🥠 Crack Open a Fortune</button>
+  <div id="fortune"></div>
+</section>
+
+<section>
+  <h2>Our Beautiful Memories 📸</h2>
+  <div class="gallery" id="gallery"></div>
+</section>
+
+<section id="videoSection" style="display:none">
+  <h2>Our Video Memories 🎬</h2>
+  <div class="video-wrap" id="videoWrap"></div>
+</section>
+
+<section>
+  <h2>Our Story 📖</h2>
+  <div class="timeline">
+    <div class="tl-item"><div class="tl-date">The Beginning</div><h4>✨ The Day We Met</h4><p>The day my life changed forever, and I didn't even know it yet.</p></div>
+    <div class="tl-item"><div class="tl-date">Falling</div><h4>💭 First "I Love You"</h4><p>Three words that made everything make sense.</p></div>
+    <div class="tl-item"><div class="tl-date">Today</div><h4>🎂 Your Birthday</h4><p>Celebrating the most important person in my life.</p></div>
+    <div class="tl-item"><div class="tl-date">Forever</div><h4>♾️ And Always</h4><p>Every day after this one — together.</p></div>
+  </div>
+</section>
+
+<section>
+  <h2>A Letter From My Heart 💌</h2>
+  <div class="letter">
+    <div id="letterText"></div>
+    <div class="signature" id="sigText"></div>
+  </div>
+</section>
+
+<!-- FEATURE 14: her reply (always last) -->
+<section>
+  <h2>Reply to My Heart 💬</h2>
+  <p class="section-hint">Now it's your turn... tell me anything, my love 🥰</p>
+  <div class="reply-box">
+    <textarea id="replyText" placeholder="Write your reply here... he's waiting 🥹"></textarea>
+    <button class="cookie-btn" onclick="sendReply()">💌 Send My Reply</button>
+    <p class="admin-msg" id="replyMsg"></p>
+  </div>
+</section>
+
+<footer>Made with ❤️ just for you · Happy Birthday My Love! 🎂💕</footer>
+
+<audio id="bgMusic" loop></audio>
+<audio id="voiceAudio"></audio>
+<button class="music-ctrl" id="musicCtrl" style="display:none" onclick="toggleMusic()">🔊</button>
+
+<script>
+if ('serviceWorker' in navigator) {
+  window.addEventListener('load', () => navigator.serviceWorker.register('/sw.js').catch(()=>{}));
+}
+</script>
+<script src="js/supabase-config.js"></script>
+<script src="js/messages.js"></script>
+<script src="js/app.js"></script>
+<script src="js/admin.js"></script>
+</body>
+</html>

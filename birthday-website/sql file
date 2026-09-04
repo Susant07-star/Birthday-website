@@ -1,0 +1,89 @@
+-- ====== TEXT CONTENT ======
+CREATE TABLE IF NOT EXISTS site_content (
+  id INT PRIMARY KEY DEFAULT 1,
+  data JSONB NOT NULL,
+  updated_at TIMESTAMPTZ DEFAULT NOW()
+);
+INSERT INTO site_content (id, data) VALUES (1, '{}') ON CONFLICT DO NOTHING;
+
+-- ====== SITE SETTINGS (LOCK TIME, TESTING MODE, EMAIL) ======
+CREATE TABLE IF NOT EXISTS site_settings (
+  id INT PRIMARY KEY DEFAULT 1,
+  unlock_time TIMESTAMPTZ,          -- NULL = open now (testing mode)
+  admin_email TEXT DEFAULT '',
+  notify_hour_morning INT DEFAULT 23,  -- UTC hour for 5:45-ish AM NPT
+  notify_minute_morning INT DEFAULT 15,
+  notify_hour_evening INT DEFAULT 11,  -- UTC hour for 5:00 PM NPT
+  notify_minute_evening INT DEFAULT 15
+);
+INSERT INTO site_settings (id) VALUES (1) ON CONFLICT DO NOTHING;
+
+-- ====== MEDIA ======
+CREATE TABLE IF NOT EXISTS media_files (
+  id BIGSERIAL PRIMARY KEY,
+  type TEXT NOT NULL,          -- 'photos' | 'videos' | 'music' | 'voice'
+  url TEXT NOT NULL,
+  path TEXT NOT NULL,
+  created_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+-- ====== OPEN WHEN LETTERS ======
+CREATE TABLE IF NOT EXISTS open_letters (
+  id BIGSERIAL PRIMARY KEY,
+  title TEXT NOT NULL,
+  body TEXT NOT NULL,
+  position INT DEFAULT 0,
+  created_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+-- ====== MYSTERY GIFT BOXES ======
+CREATE TABLE IF NOT EXISTS gift_boxes (
+  id BIGSERIAL PRIMARY KEY,
+  position INT NOT NULL,
+  content_type TEXT DEFAULT 'text',  -- 'text' | 'photo' | 'video' | 'voice'
+  content_data TEXT DEFAULT '',      -- text message OR media URL
+  caption TEXT DEFAULT '',           -- caption/label
+  created_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+-- ====== MESSAGES (notes/fortune) ======
+CREATE TABLE IF NOT EXISTS messages (
+  id BIGSERIAL PRIMARY KEY,
+  emoji TEXT DEFAULT '💕',
+  text TEXT NOT NULL,
+  created_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+-- ====== HER REPLIES ======
+CREATE TABLE IF NOT EXISTS replies (
+  id BIGSERIAL PRIMARY KEY,
+  text TEXT NOT NULL,
+  created_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+-- ====== PUSH SUBSCRIPTIONS ======
+CREATE TABLE IF NOT EXISTS push_subscriptions (
+  id BIGSERIAL PRIMARY KEY,
+  endpoint TEXT UNIQUE NOT NULL,
+  keys JSONB NOT NULL,
+  created_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+-- ====== RLS (public open — content gating is done by unlock_time) ======
+ALTER TABLE site_content ENABLE ROW LEVEL SECURITY;
+ALTER TABLE site_settings ENABLE ROW LEVEL SECURITY;
+ALTER TABLE media_files ENABLE ROW LEVEL SECURITY;
+ALTER TABLE open_letters ENABLE ROW LEVEL SECURITY;
+ALTER TABLE gift_boxes ENABLE ROW LEVEL SECURITY;
+ALTER TABLE messages ENABLE ROW LEVEL SECURITY;
+ALTER TABLE replies ENABLE ROW LEVEL SECURITY;
+ALTER TABLE push_subscriptions ENABLE ROW LEVEL SECURITY;
+
+CREATE POLICY "p1" ON site_content FOR ALL USING (true) WITH CHECK (true);
+CREATE POLICY "p2" ON site_settings FOR ALL USING (true) WITH CHECK (true);
+CREATE POLICY "p3" ON media_files FOR ALL USING (true) WITH CHECK (true);
+CREATE POLICY "p4" ON open_letters FOR ALL USING (true) WITH CHECK (true);
+CREATE POLICY "p5" ON gift_boxes FOR ALL USING (true) WITH CHECK (true);
+CREATE POLICY "p6" ON messages FOR ALL USING (true) WITH CHECK (true);
+CREATE POLICY "p7" ON replies FOR ALL USING (true) WITH CHECK (true);
+CREATE POLICY "p8" ON push_subscriptions FOR ALL USING (true) WITH CHECK (true);
