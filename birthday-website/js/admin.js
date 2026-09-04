@@ -325,7 +325,7 @@ async function renderLists() {
 
     const voice = (media || []).find(m => m.type === 'voice');
     document.getElementById('voiceList').innerHTML = voice
-      ? `<div class="manage-item"><span>🎤 Voice note set</span><button onclick="deleteMedia(voice.id,′{voice.id},'voice.id,′{voice.path}')">Remove</button></div>` : none;
+      ? `<div class="manage-item"><audio src="${voice.url}" controls></audio><span>🎤 Voice note set</span><button onclick="deleteMedia(${voice.id}, '${voice.path}')">Remove</button></div>` : none;
 
     document.getElementById('openLetterList').innerHTML = (letters && letters.length)
       ? letters.map(l => `<div class="manage-item"><span>💌 esc(l.title)</span><buttononclick="deleteOpenLetter({esc(l.title)}</span><button onclick="deleteOpenLetter(esc(l.title)</span><buttononclick="deleteOpenLetter({l.id})">Delete</button></div>`).join('')

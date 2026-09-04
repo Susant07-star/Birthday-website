@@ -86,6 +86,8 @@ h2{font-family:'Dancing Script';font-size:clamp(1.9rem,5vw,3.2rem);color:#fff;ma
 .candles-out .flame{opacity:0}
 .cake-hint{color:#fff;margin-top:25px;font-size:1.05rem}
 #wishMsg{display:none;font-size:1.3rem;color:#fff;margin-top:25px}
+.voice-section{display:none}
+.voice-section audio{width:min(100%,420px);margin:10px auto 0;display:block}
 
 /* ===== Open When envelopes ===== */
 .envelope-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(230px,1fr));gap:22px}

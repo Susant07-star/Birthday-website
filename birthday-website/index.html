@@ -17,6 +17,7 @@
 
 <!-- ============ ADMIN ENTRY (hidden top-left dot, all screens) ============ -->
 <div class="admin-dot" id="adminDot" title=""></div>
+<button class="admin-btn admin-entry" id="adminBtn" onclick="openAdmin()" title="Open admin panel">⚙️</button>
 
 <!-- ================================================================
      LOCK SCREEN — shown until unlock_time. She CANNOT see the site.
@@ -267,6 +268,12 @@
   <p id="wishMsg"></p>
 </section>
 
+<section id="voiceSection" class="voice-section">
+  <h2>🎤 Voice Note After Candles</h2>
+  <p class="section-hint">A little message from me, waiting for the moment you make your wish.</p>
+  <audio id="voiceAudio" controls preload="auto"></audio>
+</section>
+
 <!-- FEATURE 2: open when letters -->
 <section>
   <h2>Open When... Envelopes 💌</h2>
@@ -379,7 +386,6 @@
 <footer>Made with ❤️ just for you · Happy Birthday My Love! 🎂💕</footer>
 
 <audio id="bgMusic" loop></audio>
-<audio id="voiceAudio"></audio>
 <button class="music-ctrl" id="musicCtrl" style="display:none" onclick="toggleMusic()">🔊</button>
 
 <script>

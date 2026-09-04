@@ -97,12 +97,12 @@ function adminTry() {
 
 function showAdminBtn() {
   // floating ⚙️ button — visible only to logged-in admin
-  const btn = document.createElement('button');
+  const btn = document.getElementById('adminBtn') || document.createElement('button');
   btn.className = 'admin-btn';
   btn.textContent = '⚙️';
   btn.onclick = openAdmin;
   btn.id = 'adminBtn';
-  document.body.appendChild(btn);
+  if (!btn.parentNode) document.body.appendChild(btn);
 }
 
 /* ==================== LOAD ALL SITE CONTENT ==================== */
@@ -275,6 +275,12 @@ async function loadMedia() {
     if (music) {
       document.getElementById('bgMusic').src = music.url;
       document.getElementById('musicCtrl').style.display = 'block';
+    }
+
+    const voice = data.find(m => m.type === 'voice');
+    if (voice) {
+      document.getElementById('voiceAudio').src = voice.url;
+      document.getElementById('voiceSection').style.display = 'block';
     }
   } catch (e) { console.warn('media:', e.message); }
 }
