@@ -6,8 +6,8 @@
    4. Paste URL + anon key below
    ============================================ */
 
-const SUPABASE_URL = 'https://YOUR-PROJECT.supabase.co';   // 👈 your URL
-const SUPABASE_ANON_KEY = 'YOUR-ANON-KEY';                  // 👈 your anon key
+const SUPABASE_URL = 'https://ycrvrbxjhhrmgawpxtez.supabase.co';   // 👈 your URL
+const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InljcnZyYnhqaGhybWdhd3B4dGV6Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODg1MjY1NzksImV4cCI6MjEwNDEwMjU3OX0.lFznAdo39ssaEDnqHZhEpj97hH22PhsjfxRD_Foc8z0';                  // 👈 your anon key
 const SUPABASE_URL_FULL = SUPABASE_URL + '/functions/v1';   // for edge functions if needed
 
 const sb = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
