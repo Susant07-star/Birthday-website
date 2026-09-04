@@ -98,12 +98,7 @@ body{font-family:'Poppins',sans-serif;background:linear-gradient(135deg,#ff9a9e 
 
 /* Slow ballroom turn and dip */
 .ballroom-section{padding-top:45px}
-.ballroom-stage{position:relative;width:min(100%,620px);height:280px;margin:0 auto;overflow:hidden;border-radius:28px;background:#42243e;box-shadow:inset 0 0 45px rgba(255,255,255,.18),0 14px 35px rgba(150,55,100,.16)}
-.simple-dance{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;gap:12px;background:radial-gradient(ellipse at center,rgba(255,255,255,.3),rgba(255,179,193,.08) 55%,rgba(66,36,62,.12));font-size:5.5rem}
-.simple-dance-emoji{display:inline-block;filter:drop-shadow(0 10px 5px rgba(91,35,75,.25));animation:simpleDance 2.4s ease-in-out infinite}
-.simple-dance-heart{font-size:2.1rem;animation:simpleHeart 1.2s ease-in-out infinite}
-@keyframes simpleDance{0%,100%{transform:translateY(4px) rotate(-4deg)}50%{transform:translateY(-9px) rotate(4deg)}}
-@keyframes simpleHeart{0%,100%{transform:scale(.9);opacity:.75}50%{transform:scale(1.2);opacity:1}}
+.ballroom-stage{position:relative;width:min(100%,620px);height:280px;margin:0 auto;overflow:hidden;border-radius:28px;background:linear-gradient(180deg,rgba(109,54,105,.24),rgba(255,179,193,.22));box-shadow:inset 0 0 45px rgba(255,255,255,.18),0 14px 35px rgba(150,55,100,.16)}
 .ballroom-floor{position:absolute;left:8%;right:8%;bottom:38px;height:34px;border-radius:50%;background:radial-gradient(ellipse,rgba(255,255,255,.5),rgba(255,255,255,0) 70%);border-bottom:2px solid rgba(255,255,255,.6)}
 .ballroom-pair{position:absolute;left:50%;bottom:61px;width:270px;height:155px;transform:translateX(-50%);animation:ballroomPair 10s ease-in-out infinite;will-change:transform}
 .ballroom-dancer{position:absolute;bottom:0;z-index:2;text-align:center;transform-origin:50% 90%;will-change:transform}
@@ -426,8 +421,6 @@ footer{text-align:center;padding:40px 20px 60px;color:#fff;font-size:1.05rem;pos
   .dance-heart{font-size:1.8rem}
   .dance-name{bottom:-18px;font-size:.7rem}
   .ballroom-stage{height:200px}
-  .simple-dance{font-size:4rem}
-  .simple-dance-heart{font-size:1.6rem}
   .ballroom-name{font-size:.7rem;margin-top:4px}
   .ballroom-caption{margin-top:16px;font-size:.9rem}
   .map-heart{padding:16px 12px;min-width:0}
