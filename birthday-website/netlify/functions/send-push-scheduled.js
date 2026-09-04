@@ -1,42 +1,64 @@
-const webpush = require('web-push');
 const { createClient } = require('@supabase/supabase-js');
+const webpush = require('web-push');
 
-const VAPID_PUBLIC = process.env.VAPID_PUBLIC_KEY;
-const VAPID_PRIVATE = process.env.VAPID_PRIVATE_KEY;
-const SUPABASE_URL = process.env.SUPABASE_URL;
-const SUPABASE_SERVICE_KEY = process.env.SUPABASE_SERVICE_KEY;
+const MESSAGES = require('./teaser-messages.js');
 
-webpush.setVapidDetails('mailto:you@example.com', VAPID_PUBLIC, VAPID_PRIVATE);
-
-const TEASERS = require('../../teaser-messages.js');
+const sb = createClient(process.env.SUPABASE_URL, process.env.SUPABASE_SERVICE_KEY);
+webpush.setVapidDetails(
+  'mailto:you@example.com',
+  process.env.VAPID_PUBLIC_KEY,
+  process.env.VAPID_PRIVATE_KEY
+);
 
 exports.handler = async () => {
-  const sb = createClient(SUPABASE_URL, SUPABASE_SERVICE_KEY);
+  try {
+    // Get settings → unlock time
+    const { data: settings } = await sb.from('site_settings').select('*').eq('id', 1).single();
+    if (!settings || !settings.unlock_time) {
+      return { statusCode: 200, body: 'Testing mode — no push sent' };
+    }
+    const unlock = new Date(settings.unlock_time);
+    const now = new Date();
 
-  // Lock settings: stop everything once birthday arrives
-  const { data: settings } = await sb.from('site_settings').select('*').single();
-  if (settings?.testing_mode) return { statusCode: 200, body: 'testing mode — no push' };
-  const unlock = settings?.unlock_time ? new Date(settings.unlock_time) : null;
-  if (unlock && unlock <= new Date()) return { statusCode: 200, body: 'unlocked — no teaser push' };
+    // Birthday arrived → stop messages
+    if (now >= unlock) {
+      // send ONE final "it's time" push on the unlock day
+      const dayDiff = Math.floor((now - unlock) / 86400000);
+      if (dayDiff > 0) return { statusCode: 200, body: 'Birthday passed — no push' };
+    }
 
-  // Pick today's message by days remaining (100-message queue, stops at birthday)
-  const daysLeft = Math.ceil((unlock - Date.now()) / 86400000);
-  const msg = TEASERS[Math.max(0, Math.min(TEASERS.length - 1, 100 - daysLeft))] ||
-              `Only ${daysLeft} days left, my love 🎂💕`;
+    const daysLeft = Math.max(Math.ceil((unlock - now) / 86400000), 0);
 
-  const { data: subs } = await sb.from('push_subscriptions').select('subscription');
-  const payload = JSON.stringify({ title: '🎁 Something magical...', body: msg, url: '/' });
-  const results = await Promise.allSettled(
-    (subs || []).map(s => webpush.sendNotification(s.subscription, payload))
-  );
+    // Pick message: index from the end (daysLeft 40 → message #61...)
+    let msg;
+    if (daysLeft <= 0) {
+      msg = { title: '🎂 IT\'S YOUR BIRTHDAY!!!', body: 'Your surprise is ready, my love! Open the app NOW! 🎉💕' };
+    } else if (daysLeft <= MESSAGES.length) {
+      const m = MESSAGES[MESSAGES.length - daysLeft];
+      msg = { title: `🎁 ${daysLeft} day${daysLeft > 1 ? 's' : ''} left...`, body: m };
+    } else {
+      msg = { title: '💕 A little secret...', body: 'Something magical is being prepared for you 🎁' };
+    }
 
-  // Clean up dead subscriptions (uninstalled app / expired)
-  const dead = results.filter(r => r.status === 'rejected' && /410|404/.test(r.reason?.message || ''));
-  if (dead.length) {
-    await sb.from('push_subscriptions')
-      .delete()
-      .in('subscription', dead.map((_, i) => subs[i].subscription));
+    // Get all subscriptions and send
+    const { data: subs } = await sb.from('push_subscriptions').select('*');
+    let sent = 0, removed = 0;
+    for (const s of subs || []) {
+      try {
+        await webpush.sendNotification(
+          { endpoint: s.endpoint, keys: s.keys },
+          JSON.stringify({ title: msg.title, body: msg.body })
+        );
+        sent++;
+      } catch (e) {
+        if (e.statusCode === 404 || e.statusCode === 410) {
+          await sb.from('push_subscriptions').delete().eq('id', s.id);
+          removed++;
+        }
+      }
+    }
+    return { statusCode: 200, body: `Sent ${sent}, removed ${removed}` };
+  } catch (e) {
+    return { statusCode: 500, body: e.message };
   }
-
-  return { statusCode: 200, body: `sent to ${subs ? subs.length : 0} subs` };
 };
