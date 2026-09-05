@@ -229,7 +229,7 @@ async function loadGiftBoxes() {
     return;
   }
 
-  const isBirthday = unlockTime ? new Date() >= unlockTime : true;
+  const isBirthday = ADMIN_PREVIEW || !unlockTime || new Date() >= unlockTime;
   const hint = document.getElementById('giftHint');
   hint.textContent = isBirthday
     ? 'Tap a box to open your gift, birthday girl! 🎉'
