@@ -1,22 +1,18 @@
 /* ============================================
    SUPABASE CONFIGURATION
-   1. supabase.com → create project (free)
-   2. Run the SQL script in SQL Editor
-   3. Create public storage bucket named "media"
-   4. Paste URL + anon key below
+   Values are injected from .env during the Netlify/local build.
    ============================================ */
 
-const SUPABASE_URL = 'https://ycrvrbxjhhrmgawpxtez.supabase.co';   // 👈 your URL
-const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InljcnZyYnhqaGhybWdhd3B4dGV6Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODg1MjY1NzksImV4cCI6MjEwNDEwMjU3OX0.lFznAdo39ssaEDnqHZhEpj97hH22PhsjfxRD_Foc8z0';                  // 👈 your anon key
-const SUPABASE_URL_FULL = SUPABASE_URL + '/functions/v1';   // for edge functions if needed
+const SUPABASE_URL = '__SUPABASE_URL__';
+const SUPABASE_ANON_KEY = '__SUPABASE_ANON_KEY__';
+const SUPABASE_URL_FULL = SUPABASE_URL + '/functions/v1';
 
 const sb = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
-/* VAPID keys for web push — generate at https://vapidkeys.com
-   The PUBLIC key goes here; the PRIVATE key goes in the Netlify function env vars */
-const VAPID_PUBLIC_KEY = 'YOUR-VAPID-PUBLIC-KEY';           // 👈 paste VAPID public key
+/* The public key goes here; the private key stays in Netlify env vars. */
+const VAPID_PUBLIC_KEY = '__VAPID_PUBLIC_KEY__';
 
-const ADMIN_PASSWORD = 'admin123'; // 👈 CHANGE THIS!
+const ADMIN_PASSWORD = '__ADMIN_PASSWORD__';
 
 /* Secret admin gesture: 5 taps within 2 seconds on the lock screen title */
 const ADMIN_TAP_COUNT = 5;
@@ -33,7 +29,7 @@ const DEFAULT_CONTENT = {
   sig: 'Me',
   letter: 'My dearest,\n\nHappy Birthday! Every day with you feels like a gift. You make ordinary moments feel magical, and I am endlessly grateful for you. I promise to always be by your side — today, tomorrow, and forever.\n\nHappy Birthday, my love. 🎂',
   date: '',
-  birthday: '',           // datetime-local string (UTC-based)
+  birthday: '',
   preTitle: 'Something magical is coming...',
   preSub: 'Come back on your special day, my love 💕',
   cakeName: 'Happy Birthday!',

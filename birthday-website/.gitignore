@@ -8,3 +8,6 @@
 # Private key material
 *.pem
 *.key
+
+# Generated from local/Netlify environment variables
+js/supabase-config.js

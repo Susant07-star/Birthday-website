@@ -1,6 +1,9 @@
 {
   "name": "birthday-website",
   "version": "1.0.0",
+  "scripts": {
+    "build": "node scripts/build-config.js"
+  },
   "dependencies": {
     "web-push": "^3.6.7",
     "@supabase/supabase-js": "^2.45.0"
