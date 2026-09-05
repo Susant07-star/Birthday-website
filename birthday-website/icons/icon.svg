@@ -1,0 +1,28 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+  <defs>
+    <linearGradient id="bg" x1="72" y1="48" x2="440" y2="480" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#ffb36b"/>
+      <stop offset="0.52" stop-color="#ff718c"/>
+      <stop offset="1" stop-color="#c84d78"/>
+    </linearGradient>
+    <linearGradient id="heart" x1="166" y1="146" x2="354" y2="371" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#fffaf5"/>
+      <stop offset="1" stop-color="#ffe2e5"/>
+    </linearGradient>
+    <filter id="shadow" x="-30%" y="-30%" width="160%" height="170%">
+      <feDropShadow dx="0" dy="14" stdDeviation="13" flood-color="#8e315a" flood-opacity=".3"/>
+    </filter>
+  </defs>
+  <rect width="512" height="512" rx="112" fill="url(#bg)"/>
+  <path d="M80 130C113 78 166 49 224 42" fill="none" stroke="#fff" stroke-linecap="round" stroke-opacity=".24" stroke-width="18"/>
+  <path d="M395 394c-25 33-58 55-96 66" fill="none" stroke="#8e315a" stroke-linecap="round" stroke-opacity=".2" stroke-width="16"/>
+  <g filter="url(#shadow)">
+    <path d="M256 377 149 270c-53-53-39-139 29-158 37-10 65 8 78 31 13-23 41-41 78-31 68 19 82 105 29 158L256 377Z" fill="url(#heart)"/>
+    <path d="M166 168c22-19 50-19 69-1" fill="none" stroke="#fff" stroke-linecap="round" stroke-width="15" opacity=".76"/>
+  </g>
+  <path d="m256 402 0-87" stroke="#bd3e6a" stroke-linecap="round" stroke-width="20"/>
+  <path d="M256 360c-12-35-42-48-65-31-22 17-10 51 21 59 23 6 44-10 44-28Z" fill="#ffe6e8" stroke="#bd3e6a" stroke-width="10"/>
+  <path d="M256 360c12-35 42-48 65-31 22 17 10 51-21 59-23 6-44-10-44-28Z" fill="#ffe6e8" stroke="#bd3e6a" stroke-width="10"/>
+  <circle cx="114" cy="338" r="9" fill="#fff" opacity=".62"/>
+  <circle cx="401" cy="162" r="7" fill="#fff" opacity=".58"/>
+</svg>

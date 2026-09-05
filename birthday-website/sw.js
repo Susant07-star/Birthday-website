@@ -1,5 +1,8 @@
-const CACHE = 'bday-v1';
-const ASSETS = ['/', '/index.html', '/css/style.css', '/js/messages.js', '/manifest.json'];
+const CACHE = 'bday-v2';
+const ASSETS = [
+  '/', '/index.html', '/css/style.css', '/js/messages.js', '/manifest.json',
+  '/icons/favicon.svg', '/icons/icon-192.png', '/icons/icon-512.png', '/icons/apple-touch-icon.png'
+];
 
 self.addEventListener('install', e => {
   e.waitUntil(caches.open(CACHE).then(c => c.addAll(ASSETS)).then(() => self.skipWaiting()));
