@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
 <meta name="theme-color" content="#ff718c">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
@@ -17,7 +17,7 @@
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="https://cdn.jsdelivr.net/npm/nepali-date-converter@3.4.0/dist/nepali-date-converter.umd.js"></script>
 </head>
-<body>
+<body class="app-locked">
 
 <canvas id="confetti"></canvas>
 <div class="hearts" id="hearts"></div>
@@ -278,6 +278,7 @@
      MAIN SITE (all content loaded from Supabase ONLY after unlock)
 ================================================================= -->
 
+<div id="siteContent" aria-hidden="true" inert>
 <!-- FEATURE 5: dancing couple -->
 <div class="hero" id="heroSection">
   <div class="dance-scene" id="danceScene">
@@ -489,6 +490,7 @@
 
 <audio id="bgMusic" loop></audio>
 <button class="music-ctrl" id="musicCtrl" style="display:none" onclick="toggleMusic()">🔊</button>
+</div>
 
 <script>
 if ('serviceWorker' in navigator) {

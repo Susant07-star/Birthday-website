@@ -12,6 +12,7 @@ window._quizEnabled = true;
 
 /* ==================== BOOT ==================== */
 async function init() {
+  setupLockGuards();
   setupInstallPrompt();
   await loadSettings();
   checkLock();
@@ -29,7 +30,20 @@ async function loadSettings() {
     }
     const { data: content } = await sb.from('site_content').select('data').eq('id', 1).single();
     if (content && content.data) window._quizEnabled = content.data.quizEnabled !== false;
-  } catch (e) { console.warn('settings:', e.message); }
+  } catch (e) {
+    console.warn('settings:', e.message);
+    // Do not expose the surprise when the lock time cannot be verified.
+    unlockTime = new Date(Date.now() + 365 * 86400000);
+  }
+}
+
+function setupLockGuards() {
+  const isLocked = () => document.body.classList.contains('app-locked') || document.body.classList.contains('locked');
+  document.addEventListener('gesturestart', e => { if (isLocked()) e.preventDefault(); }, { passive: false });
+  document.addEventListener('gesturechange', e => { if (isLocked()) e.preventDefault(); }, { passive: false });
+  document.addEventListener('gestureend', e => { if (isLocked()) e.preventDefault(); }, { passive: false });
+  document.addEventListener('dblclick', e => { if (isLocked()) e.preventDefault(); }, { passive: false });
+  document.addEventListener('wheel', e => { if (isLocked()) e.preventDefault(); }, { passive: false });
 }
 
 function checkLock() {
@@ -37,6 +51,10 @@ function checkLock() {
   IS_UNLOCKED = !unlockTime || new Date() >= unlockTime;
 
   if (IS_UNLOCKED) {
+    document.body.classList.remove('app-locked', 'locked');
+    const siteContent = document.getElementById('siteContent');
+    siteContent.setAttribute('aria-hidden', 'false');
+    siteContent.removeAttribute('inert');
     document.getElementById('preOverlay').style.display = 'none';
     startSite();
   } else {
@@ -91,6 +109,10 @@ function adminTry() {
   const pass = document.getElementById('adminPass').value;
   if (pass === ADMIN_PASSWORD) {
     ADMIN_PREVIEW = true;
+    document.body.classList.remove('app-locked', 'locked');
+    const siteContent = document.getElementById('siteContent');
+    siteContent.setAttribute('aria-hidden', 'false');
+    siteContent.removeAttribute('inert');
     document.getElementById('preOverlay').style.display = 'none';
     document.body.classList.remove('locked');
     loadAllContent().then(() => {
