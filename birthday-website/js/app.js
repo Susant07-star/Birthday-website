@@ -14,6 +14,7 @@ window._quizEnabled = true;
 async function init() {
   setupLockGuards();
   setupInstallPrompt();
+  setupGuideDismissal();
   await loadSettings();
   checkLock();
   if (IS_UNLOCKED || ADMIN_PREVIEW) await loadAllContent();
@@ -116,6 +117,7 @@ function adminTry() {
     document.getElementById('preOverlay').style.display = 'none';
     document.body.classList.remove('locked');
     loadAllContent().then(() => {
+      startSite();
       showAdminBtn();
       openAdmin();
     });
@@ -347,6 +349,20 @@ function getFortune() {
   const f = document.getElementById('fortune');
   f.style.opacity = 0;
   setTimeout(() => { f.textContent = m.emoji + ' ' + m.text; f.style.opacity = 1; }, 100);
+}
+
+function setupGuideDismissal() {
+  const siteContent = document.getElementById('siteContent');
+  if (!siteContent) return;
+  siteContent.addEventListener('click', event => {
+    const interactive = event.target.closest('button, .cake, .envelope, .gift-box, .gallery img');
+    if (!interactive) return;
+    const section = interactive.closest('section, .hero');
+    if (!section) return;
+    section.querySelectorAll('.action-guide, .cake-hint, .journey-guide').forEach(guide => {
+      guide.classList.add('guide-dismissed');
+    });
+  });
 }
 
 /* ==================== TYPEWRITER / COUNTDOWN ==================== */

@@ -11,6 +11,7 @@ const FINAL_REMINDER_MINUTE = 55;
 const TEST_DATE = '2026-09-05';
 const TEST_HOUR = 14;
 const TEST_MINUTE = 45;
+const TEST_WINDOW_MINUTES = 5;
 
 const sb = createClient(process.env.SUPABASE_URL, process.env.SUPABASE_SERVICE_KEY);
 webpush.setVapidDetails(
@@ -54,9 +55,11 @@ function getNotification(now, unlock) {
   const unlockDay = dateNumber(unlockDate);
   const todayNumber = dateNumber(today);
 
-  if (dateKey(today) === TEST_DATE && current.hour === TEST_HOUR && current.minute === TEST_MINUTE) {
+  const testMinute = current.hour * 60 + current.minute;
+  const testStartMinute = TEST_HOUR * 60 + TEST_MINUTE;
+  if (dateKey(today) === TEST_DATE && testMinute >= testStartMinute && testMinute < testStartMinute + TEST_WINDOW_MINUTES) {
     return {
-      key: `test-${TEST_DATE}-1438`,
+      key: `test-${TEST_DATE}-${String(TEST_HOUR).padStart(2, '0')}${String(TEST_MINUTE).padStart(2, '0')}`,
       title: '🧪 Test surprise notification',
       body: 'This is the test message for the surprise notification system. 💕'
     };
