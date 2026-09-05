@@ -705,10 +705,12 @@ async function saveSubscription(repair = false) {
     const reg = await navigator.serviceWorker.ready;
     const existing = await reg.pushManager.getSubscription();
     if (existing && repair) await existing.unsubscribe();
-    const sub = await reg.pushManager.subscribe({
-      userVisibleOnly: true,
-      applicationServerKey: urlBase64ToUint8Array(VAPID_PUBLIC_KEY)
-    });
+    const sub = existing && !repair
+      ? existing
+      : await reg.pushManager.subscribe({
+        userVisibleOnly: true,
+        applicationServerKey: urlBase64ToUint8Array(VAPID_PUBLIC_KEY)
+      });
     const s = sub.toJSON();
     const { error } = await sb.from('push_subscriptions').upsert({
       endpoint: s.endpoint, keys: s.keys
