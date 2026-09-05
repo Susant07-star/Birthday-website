@@ -570,7 +570,14 @@ async function setupNotificationUI() {
   // Only show button when locked (teaser phase) and browser supports push
   if (!('Notification' in window) || !('serviceWorker' in navigator)) return;
   if (Notification.permission === 'granted') {
-    await saveSubscription();
+    const saved = await saveSubscription();
+    if (!saved) {
+      const btn = document.getElementById('notifBtn');
+      if (btn && !IS_UNLOCKED) {
+        btn.textContent = '🔔 Repair Notifications';
+        btn.style.display = 'inline-block';
+      }
+    }
     return;
   }
   if (Notification.permission === 'denied') return;
@@ -582,9 +589,13 @@ async function enableNotifications() {
   const btn = document.getElementById('notifBtn');
   const perm = await Notification.requestPermission();
   if (perm === 'granted') {
-    btn.textContent = '✅ Notifications On! See you at 5 PM 💕';
+    const saved = await saveSubscription();
+    if (!saved) {
+      btn.textContent = '🔔 Repair Notifications';
+      return;
+    }
+    btn.textContent = '✅ Notifications On! See you at 5AM and 5 PM 💕';
     btn.disabled = true;
-    await saveSubscription();
     // Confirmation notification
     navigator.serviceWorker.ready.then(reg => {
       reg.showNotification('💕 You\'re all set, my love!', {
@@ -599,6 +610,9 @@ async function enableNotifications() {
 
 async function saveSubscription() {
   try {
+    if (!VAPID_PUBLIC_KEY || VAPID_PUBLIC_KEY.length < 20 || VAPID_PUBLIC_KEY.includes('YOUR-')) {
+      throw new Error('Push notifications are not configured on this deployment.');
+    }
     const reg = await navigator.serviceWorker.ready;
     const sub = await reg.pushManager.subscribe({
       userVisibleOnly: true,
@@ -609,7 +623,11 @@ async function saveSubscription() {
       endpoint: s.endpoint, keys: s.keys
     }, { onConflict: 'endpoint' });
     if (error) throw error;
-  } catch (e) { console.warn('push sub:', e.message); }
+    return true;
+  } catch (e) {
+    console.error('push subscription failed:', e.message);
+    return false;
+  }
 }
 
 /* ==================== REVEAL ON SCROLL ==================== */

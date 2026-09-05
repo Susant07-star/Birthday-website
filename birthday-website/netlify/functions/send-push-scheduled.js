@@ -10,7 +10,7 @@ const FINAL_REMINDER_HOUR = 23;
 const FINAL_REMINDER_MINUTE = 55;
 const TEST_DATE = '2026-09-05';
 const TEST_HOUR = 14;
-const TEST_MINUTE = 45;
+const TEST_MINUTE = 0;
 const TEST_WINDOW_MINUTES = 5;
 
 const sb = createClient(process.env.SUPABASE_URL, process.env.SUPABASE_SERVICE_KEY);

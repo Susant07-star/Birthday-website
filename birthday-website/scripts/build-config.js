@@ -35,7 +35,7 @@ if (missing.length) {
 const replacements = {
   __SUPABASE_URL__: values.SUPABASE_URL,
   __SUPABASE_ANON_KEY__: values.SUPABASE_ANON_KEY,
-  __VAPID_PUBLIC_KEY__: values.VAPID_PUBLIC_KEY || 'YOUR-VAPID-PUBLIC-KEY',
+  __VAPID_PUBLIC_KEY__: values.VAPID_PUBLIC_KEY || 'BHiVU6Nzu0rscdka_E7VLmsNXO5g_4zS2WrVqxZLkY77gc0TsUx7mIs8h_Bb9mP0sgZ2lXmqdKjZfiQXJPgis3g',
   __ADMIN_PASSWORD__: values.ADMIN_PASSWORD
 };
 
