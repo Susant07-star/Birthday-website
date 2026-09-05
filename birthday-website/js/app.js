@@ -587,15 +587,19 @@ async function setupNotificationUI() {
 
 async function enableNotifications() {
   const btn = document.getElementById('notifBtn');
-  const perm = await Notification.requestPermission();
+  const perm = Notification.permission === 'granted'
+    ? 'granted'
+    : await Notification.requestPermission();
   if (perm === 'granted') {
-    const saved = await saveSubscription();
+    btn.disabled = true;
+    btn.textContent = '⏳ Repairing notifications...';
+    const saved = await saveSubscription(true);
     if (!saved) {
       btn.textContent = '🔔 Repair Notifications';
+      btn.disabled = false;
       return;
     }
     btn.textContent = '✅ Notifications On! See you at 5AM and 5 PM 💕';
-    btn.disabled = true;
     // Confirmation notification
     navigator.serviceWorker.ready.then(reg => {
       reg.showNotification('💕 You\'re all set, my love!', {
@@ -608,12 +612,14 @@ async function enableNotifications() {
   }
 }
 
-async function saveSubscription() {
+async function saveSubscription(repair = false) {
   try {
     if (!VAPID_PUBLIC_KEY || VAPID_PUBLIC_KEY.length < 20 || VAPID_PUBLIC_KEY.includes('YOUR-')) {
       throw new Error('Push notifications are not configured on this deployment.');
     }
     const reg = await navigator.serviceWorker.ready;
+    const existing = await reg.pushManager.getSubscription();
+    if (existing && repair) await existing.unsubscribe();
     const sub = await reg.pushManager.subscribe({
       userVisibleOnly: true,
       applicationServerKey: urlBase64ToUint8Array(VAPID_PUBLIC_KEY)
