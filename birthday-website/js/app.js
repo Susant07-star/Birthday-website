@@ -511,7 +511,7 @@ function setupInstallPrompt() {
 
   const isIOS = /iphone|ipad|ipod/i.test(navigator.userAgent);
   if (isIOS) {
-    copy.textContent = 'Tap Share, then Add to Home Screen to keep this birthday surprise close.';
+    copy.textContent = 'Tap Share, then Add to Home Screen to keep this surprise close.';
     btn.textContent = 'Got it';
   }
 
@@ -566,13 +566,13 @@ async function enableNotifications() {
   const btn = document.getElementById('notifBtn');
   const perm = await Notification.requestPermission();
   if (perm === 'granted') {
-    btn.textContent = '✅ Notifications On! See you at 5 AM & 5 PM 💕';
+    btn.textContent = '✅ Notifications On! See you at 5 PM 💕';
     btn.disabled = true;
     await saveSubscription();
     // Confirmation notification
     navigator.serviceWorker.ready.then(reg => {
       reg.showNotification('💕 You\'re all set, my love!', {
-        body: 'You\'ll get a sweet surprise message every morning & evening until your big day 🎂',
+        body: 'You\'ll get a sweet surprise message each evening until it is time to open it 💕',
         icon: '/icons/icon-192.png'
       });
     });
@@ -589,9 +589,10 @@ async function saveSubscription() {
       applicationServerKey: urlBase64ToUint8Array(VAPID_PUBLIC_KEY)
     });
     const s = sub.toJSON();
-    await sb.from('push_subscriptions').upsert({
+    const { error } = await sb.from('push_subscriptions').upsert({
       endpoint: s.endpoint, keys: s.keys
     }, { onConflict: 'endpoint' });
+    if (error) throw error;
   } catch (e) { console.warn('push sub:', e.message); }
 }
 

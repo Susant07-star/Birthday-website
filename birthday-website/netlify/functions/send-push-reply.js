@@ -17,13 +17,13 @@ exports.handler = async (event) => {
   await sb.from('replies').insert([{ reply, created_at: new Date().toISOString() }]);
 
   // Push to all admin-subscribed devices (your phone/laptop)
-  const { data: subs } = await sb.from('push_subscriptions').select('subscription');
+  const { data: subs } = await sb.from('push_subscriptions').select('endpoint, keys');
   const payload = JSON.stringify({
     title: '💌 She replied to you!',
     body: (reply || '').slice(0, 120),
     url: '/'
   });
-  await Promise.allSettled((subs || []).map(s => webpush.sendNotification(s.subscription, payload)));
+  await Promise.allSettled((subs || []).map(s => webpush.sendNotification({ endpoint: s.endpoint, keys: s.keys }, payload)));
 
   return { statusCode: 200, body: 'ok' };
 };

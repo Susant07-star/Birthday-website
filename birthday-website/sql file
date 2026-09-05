@@ -85,6 +85,12 @@ CREATE TABLE IF NOT EXISTS push_subscriptions (
   created_at TIMESTAMPTZ DEFAULT NOW()
 );
 
+CREATE TABLE IF NOT EXISTS notification_deliveries (
+  id BIGSERIAL PRIMARY KEY,
+  delivery_key TEXT UNIQUE NOT NULL,
+  created_at TIMESTAMPTZ DEFAULT NOW()
+);
+
 -- ====== RLS (public open — content gating is done by unlock_time) ======
 ALTER TABLE site_content ENABLE ROW LEVEL SECURITY;
 ALTER TABLE site_settings ENABLE ROW LEVEL SECURITY;
@@ -94,6 +100,7 @@ ALTER TABLE gift_boxes ENABLE ROW LEVEL SECURITY;
 ALTER TABLE messages ENABLE ROW LEVEL SECURITY;
 ALTER TABLE replies ENABLE ROW LEVEL SECURITY;
 ALTER TABLE push_subscriptions ENABLE ROW LEVEL SECURITY;
+ALTER TABLE notification_deliveries ENABLE ROW LEVEL SECURITY;
 
 DROP POLICY IF EXISTS "p1" ON site_content;
 DROP POLICY IF EXISTS "p2" ON site_settings;
@@ -103,6 +110,7 @@ DROP POLICY IF EXISTS "p5" ON gift_boxes;
 DROP POLICY IF EXISTS "p6" ON messages;
 DROP POLICY IF EXISTS "p7" ON replies;
 DROP POLICY IF EXISTS "p8" ON push_subscriptions;
+DROP POLICY IF EXISTS "notification deliveries service only" ON notification_deliveries;
 
 CREATE POLICY "p1" ON site_content FOR ALL USING (true) WITH CHECK (true);
 CREATE POLICY "p2" ON site_settings FOR ALL USING (true) WITH CHECK (true);
@@ -112,3 +120,4 @@ CREATE POLICY "p5" ON gift_boxes FOR ALL USING (true) WITH CHECK (true);
 CREATE POLICY "p6" ON messages FOR ALL USING (true) WITH CHECK (true);
 CREATE POLICY "p7" ON replies FOR ALL USING (true) WITH CHECK (true);
 CREATE POLICY "p8" ON push_subscriptions FOR ALL USING (true) WITH CHECK (true);
+CREATE POLICY "notification deliveries service only" ON notification_deliveries FOR ALL USING (false) WITH CHECK (false);
