@@ -3,7 +3,8 @@ const webpush = require('web-push');
 
 const MESSAGES = require('./teaser-messages.js');
 const TIME_ZONE = 'Asia/Kathmandu';
-const DAILY_SEND_HOUR = 17;
+const MORNING_SEND_HOUR = 5;
+const EVENING_SEND_HOUR = 17;
 const DAILY_SEND_MINUTE = 0;
 const FINAL_REMINDER_HOUR = 23;
 const FINAL_REMINDER_MINUTE = 55;
@@ -67,15 +68,21 @@ function getNotification(now, unlock) {
     };
   }
 
-  if (minutes < DAILY_SEND_HOUR * 60 + DAILY_SEND_MINUTE || minutes >= DAILY_SEND_HOUR * 60 + DAILY_SEND_MINUTE + 5) return null;
+  const slot = current.hour === MORNING_SEND_HOUR ? 0 : current.hour === EVENING_SEND_HOUR ? 1 : -1;
+  if (slot < 0 || current.minute < DAILY_SEND_MINUTE || current.minute >= DAILY_SEND_MINUTE + 5) return null;
 
   const daysLeft = unlockDay - todayNumber;
-  if (daysLeft < 1 || daysLeft > MESSAGES.length - 50) return null;
+  const daysWithMessages = MESSAGES.length / 2;
+  if (daysLeft < 1 || daysLeft > daysWithMessages) return null;
 
+  const messageIndex = (daysWithMessages - daysLeft) * 2 + slot;
+  const countdownDays = new Set([50, 40, 30, 21, 14, 10, 7, 5, 3, 2, 1]);
   return {
-    key: `daily-${dateKey(today)}-${daysLeft}`,
-    title: `🎁 ${daysLeft} day${daysLeft === 1 ? '' : 's'} to go`,
-    body: MESSAGES[MESSAGES.length - daysLeft]
+    key: `daily-${dateKey(today)}-${daysLeft}-${slot}`,
+    title: countdownDays.has(daysLeft)
+      ? `🎁 ${daysLeft} day${daysLeft === 1 ? '' : 's'} to go`
+      : slot === 0 ? '☀️ A morning secret for you' : '🌙 A little evening secret',
+    body: MESSAGES[messageIndex]
   };
 }
 
