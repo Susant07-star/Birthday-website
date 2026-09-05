@@ -303,12 +303,6 @@ async function loadMedia() {
       });
     }
 
-    const music = data.find(m => m.type === 'music');
-    if (music) {
-      document.getElementById('bgMusic').src = music.url;
-      document.getElementById('musicCtrl').style.display = 'block';
-    }
-
     const voice = data.find(m => m.type === 'voice');
     if (voice) {
       document.getElementById('voiceAudio').src = voice.url;
@@ -472,13 +466,49 @@ function blowCandles() {
 }
 
 /* ==================== MUSIC ==================== */
+const BACKGROUND_MUSIC = [
+  'Nenu Local bgm ringtone               #bgm #status #video #ringtone #nenulocal.mp3',
+  'Lyrical   Tum Ho Toh Song   Saiyaara   Ahaan, Aneet   Vishal Mishra, Hansika Pareek   Raj Shekhar.mp3'
+].map(fileName => 'music/' + encodeURIComponent(fileName));
+let currentMusicIndex = 0;
 let musicPlaying = false;
+
+function setupBackgroundMusic() {
+  if (!IS_UNLOCKED && !ADMIN_PREVIEW) return;
+  const music = document.getElementById('bgMusic');
+  const ctrl = document.getElementById('musicCtrl');
+  if (!music || music.dataset.playlistReady === 'true') return;
+
+  music.dataset.playlistReady = 'true';
+  music.src = BACKGROUND_MUSIC[currentMusicIndex];
+  music.addEventListener('ended', () => {
+    currentMusicIndex = (currentMusicIndex + 1) % BACKGROUND_MUSIC.length;
+    music.src = BACKGROUND_MUSIC[currentMusicIndex];
+    music.play().then(() => {
+      musicPlaying = true;
+      ctrl.textContent = '🔊';
+    }).catch(() => { musicPlaying = false; });
+  });
+  music.addEventListener('pause', () => { musicPlaying = false; ctrl.textContent = '🔇'; });
+  music.addEventListener('play', () => { musicPlaying = true; ctrl.textContent = '🔊'; });
+  ctrl.style.display = 'block';
+
+  const tryStart = () => {
+    music.play().catch(() => {});
+    document.removeEventListener('pointerdown', tryStart);
+    document.removeEventListener('keydown', tryStart);
+  };
+  music.play().catch(() => {
+    document.addEventListener('pointerdown', tryStart, { once: true });
+    document.addEventListener('keydown', tryStart, { once: true });
+  });
+}
+
 function toggleMusic() {
   const music = document.getElementById('bgMusic');
   const ctrl = document.getElementById('musicCtrl');
-  if (musicPlaying) { music.pause(); ctrl.textContent = '🔇'; }
-  else { music.play().catch(() => {}); ctrl.textContent = '🔊'; }
-  musicPlaying = !musicPlaying;
+  if (musicPlaying) music.pause();
+  else music.play().catch(() => {});
 }
 
 /* ==================== HER REPLY (feature 14) ==================== */
@@ -654,6 +684,7 @@ function esc(s) {
 
 function startSite() {
   observeCards();
+  setupBackgroundMusic();
   if (!ADMIN_PREVIEW && window._quizEnabled !== false) openQuizGate();
 }
 
