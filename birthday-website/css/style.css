@@ -30,6 +30,18 @@ body{font-family:'Poppins',sans-serif;background:linear-gradient(135deg,#ff9a9e 
 .notif-btn:disabled{opacity:.6}
 .install-hint{color:rgba(255,255,255,.85);font-size:.85rem;margin-top:20px}
 .install-btn{margin-top:10px;background:#ffd700;color:#5a2a3a;border:none;padding:12px 28px;border-radius:40px;font-weight:600;cursor:pointer;font-family:'Poppins';box-shadow:0 8px 25px rgba(0,0,0,.2)}
+.install-overlay{position:fixed;inset:0;z-index:200;display:none;align-items:center;justify-content:center;padding:20px;background:rgba(54,16,45,.5);-webkit-backdrop-filter:blur(7px);backdrop-filter:blur(7px)}
+.install-overlay.open{display:flex;animation:installFadeIn .3s ease both}
+.install-dialog{position:relative;width:min(100%,390px);padding:34px 28px 28px;border:1px solid rgba(255,255,255,.75);border-radius:26px;background:linear-gradient(145deg,#fffaf5,#ffe5e8);box-shadow:0 24px 70px rgba(67,14,49,.35);text-align:center;color:#5a2a3a;animation:installPopIn .45s cubic-bezier(.2,.8,.2,1) both}
+.install-close{position:absolute;top:10px;right:14px;width:34px;height:34px;border:0;border-radius:50%;background:rgba(198,77,120,.1);color:#8e315a;font-size:1.5rem;line-height:1;cursor:pointer}
+.install-mark{display:grid;place-items:center;width:64px;height:64px;margin:0 auto 14px;border-radius:20px;background:linear-gradient(145deg,#ffb36b,#c84d78);box-shadow:0 10px 22px rgba(200,77,120,.25);font-size:2rem}
+.install-kicker{color:#bd3e6a;font-size:.7rem;font-weight:600;letter-spacing:2px;text-transform:uppercase}
+.install-dialog h2{margin:6px 0 8px;font-family:'Dancing Script';font-size:2.25rem;color:#8e315a}
+.install-copy{font-size:.88rem;line-height:1.6;color:#76445a}
+.install-dialog .install-btn{margin-top:18px;background:#c84d78;color:#fff}
+.install-status{min-height:20px;margin-top:12px;font-size:.75rem;line-height:1.4;color:#8e315a}
+@keyframes installFadeIn{from{opacity:0}to{opacity:1}}
+@keyframes installPopIn{from{opacity:0;transform:translateY(15px) scale(.94)}to{opacity:1;transform:translateY(0) scale(1)}}
 
 /* admin gate on lock screen */
 .admin-gate{display:none;margin-top:25px}

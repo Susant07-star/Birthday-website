@@ -12,10 +12,10 @@ window._quizEnabled = true;
 
 /* ==================== BOOT ==================== */
 async function init() {
+  setupInstallPrompt();
   await loadSettings();
   checkLock();
   if (IS_UNLOCKED || ADMIN_PREVIEW) await loadAllContent();
-  setupInstallPrompt();
   setupNotificationUI();
 }
 
@@ -467,20 +467,57 @@ async function sendReply() {
 /* ==================== PWA: INSTALL PROMPT ==================== */
 let deferredPrompt = null;
 function setupInstallPrompt() {
+  const overlay = document.getElementById('installOverlay');
+  const btn = document.getElementById('installBtn');
+  const close = document.getElementById('installClose');
+  const copy = document.getElementById('installCopy');
+  const status = document.getElementById('installStatus');
+  if (!overlay || !btn || !close) return;
+
+  const isStandalone = window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone === true;
+  if (isStandalone) return;
+
+  const closePrompt = () => {
+    overlay.classList.remove('open');
+    overlay.setAttribute('aria-hidden', 'true');
+  };
+
+  const showPrompt = () => {
+    overlay.classList.add('open');
+    overlay.setAttribute('aria-hidden', 'false');
+  };
+
+  const isIOS = /iphone|ipad|ipod/i.test(navigator.userAgent);
+  if (isIOS) {
+    copy.textContent = 'Tap Share, then Add to Home Screen to keep this birthday surprise close.';
+    btn.textContent = 'Got it';
+  }
+
+  close.addEventListener('click', closePrompt);
+  overlay.addEventListener('click', e => {
+    if (e.target === overlay) closePrompt();
+  });
+  btn.addEventListener('click', async () => {
+    if (!deferredPrompt) {
+      status.textContent = isIOS ? 'Use your browser Share button, then choose Add to Home Screen.' : 'Use your browser menu and choose Install app or Add to home screen.';
+      if (isIOS) closePrompt();
+      return;
+    }
+    deferredPrompt.prompt();
+    const choice = await deferredPrompt.userChoice;
+    deferredPrompt = null;
+    if (choice.outcome === 'accepted') closePrompt();
+    else status.textContent = 'You can install it any time from this button.';
+  });
+
   window.addEventListener('beforeinstallprompt', e => {
     e.preventDefault();
     deferredPrompt = e;
-    const btn = document.getElementById('installBtn');
-    if (btn) {
-      btn.style.display = 'inline-block';
-      btn.onclick = async () => {
-        btn.style.display = 'none';
-        deferredPrompt.prompt();
-        await deferredPrompt.userChoice;
-        deferredPrompt = null;
-      };
-    }
+    btn.textContent = '📲 Install App';
   });
+
+  window.addEventListener('appinstalled', closePrompt);
+  window.setTimeout(showPrompt, 900);
 }
 
 /* ==================== PWA: NOTIFICATIONS ==================== */
