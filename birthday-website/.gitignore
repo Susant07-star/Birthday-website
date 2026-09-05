@@ -1,0 +1,10 @@
+.env
+.env.*
+!.env.example
+
+# Local Netlify and deployment state
+.netlify/
+
+# Private key material
+*.pem
+*.key
