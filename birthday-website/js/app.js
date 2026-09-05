@@ -467,7 +467,7 @@ function blowCandles() {
 
 /* ==================== MUSIC ==================== */
 const BACKGROUND_MUSIC = [
-  'Nenu Local bgm ringtone               #bgm #status #video #ringtone #nenulocal.mp3',
+  'Nenu-Local-bgm-ringtone.mp3',
   'Lyrical   Tum Ho Toh Song   Saiyaara   Ahaan, Aneet   Vishal Mishra, Hansika Pareek   Raj Shekhar.mp3'
 ].map(fileName => 'music/' + encodeURIComponent(fileName));
 let currentMusicIndex = 0;
