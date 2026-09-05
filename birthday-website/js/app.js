@@ -468,10 +468,64 @@ function blowCandles() {
 /* ==================== MUSIC ==================== */
 const BACKGROUND_MUSIC = [
   'Nenu-Local-bgm-ringtone.mp3',
-  'Lyrical   Tum Ho Toh Song   Saiyaara   Ahaan, Aneet   Vishal Mishra, Hansika Pareek   Raj Shekhar.mp3'
+  'Lyrical   Tum Ho Toh Song   Saiyaara   Ahaan, Aneet   Vishal Mishra, Hansika Pareek   Raj Shekhar.mp3',
+  'Aankhon Se Batana – Dikshant   Viral Song   Official Video.mp3',
+  'Bairan.mp3',
+  'Dil Tu Jaan Tu (Full Video) Gurnazar Ft. Kritika Yadav   New Punjabi Viral Song   Chet Singh.mp3',
+  'Nadaaniyan (Official Music Video) Akshath   Aisha Ahmed   Hit Song 2024.mp3'
 ].map(fileName => 'music/' + encodeURIComponent(fileName));
+const BACKGROUND_MUSIC_VOLUME = 0.16;
 let currentMusicIndex = 0;
 let musicPlaying = false;
+
+/* ==================== UI SOUNDS ==================== */
+let uiAudioContext = null;
+
+function playUiSound(kind) {
+  const AudioContextClass = window.AudioContext || window.webkitAudioContext;
+  if (!AudioContextClass) return;
+
+  uiAudioContext = uiAudioContext || new AudioContextClass();
+  if (uiAudioContext.state === 'suspended') uiAudioContext.resume().catch(() => {});
+
+  const sound = {
+    tap: { frequency: 520, duration: 0.045, volume: 0.035, type: 'sine' },
+    cake: { frequency: 390, duration: 0.09, volume: 0.05, type: 'triangle' },
+    envelope: { frequency: 620, duration: 0.1, volume: 0.045, type: 'sine' },
+    gift: { frequency: 740, duration: 0.12, volume: 0.05, type: 'triangle' },
+    photo: { frequency: 470, duration: 0.06, volume: 0.04, type: 'sine' },
+    celebrate: { frequency: 660, duration: 0.18, volume: 0.06, type: 'triangle' }
+  }[kind] || { frequency: 520, duration: 0.045, volume: 0.035, type: 'sine' };
+
+  const now = uiAudioContext.currentTime;
+  const oscillator = uiAudioContext.createOscillator();
+  const gain = uiAudioContext.createGain();
+  oscillator.type = sound.type;
+  oscillator.frequency.setValueAtTime(sound.frequency, now);
+  if (kind === 'celebrate') oscillator.frequency.exponentialRampToValueAtTime(980, now + sound.duration);
+  gain.gain.setValueAtTime(0.0001, now);
+  gain.gain.exponentialRampToValueAtTime(sound.volume, now + 0.008);
+  gain.gain.exponentialRampToValueAtTime(0.0001, now + sound.duration);
+  oscillator.connect(gain).connect(uiAudioContext.destination);
+  oscillator.start(now);
+  oscillator.stop(now + sound.duration + 0.02);
+}
+
+function setupInteractionSounds() {
+  const siteContent = document.getElementById('siteContent');
+  if (!siteContent || siteContent.dataset.soundsReady === 'true') return;
+  siteContent.dataset.soundsReady = 'true';
+  siteContent.addEventListener('click', event => {
+    const target = event.target.closest('.cake, .envelope, .gift-box, .gallery img, .cookie-btn, button');
+    if (!target) return;
+    if (target.id === 'musicCtrl') return;
+    else if (target.classList.contains('cake')) playUiSound(target.classList.contains('candles-out') ? 'cake' : 'celebrate');
+    else if (target.classList.contains('envelope')) playUiSound('envelope');
+    else if (target.classList.contains('gift-box')) playUiSound('gift');
+    else if (target.matches('.gallery img')) playUiSound('photo');
+    else playUiSound('tap');
+  }, true);
+}
 
 function setupBackgroundMusic() {
   if (!IS_UNLOCKED && !ADMIN_PREVIEW) return;
@@ -480,6 +534,7 @@ function setupBackgroundMusic() {
   if (!music || music.dataset.playlistReady === 'true') return;
 
   music.dataset.playlistReady = 'true';
+  music.volume = BACKGROUND_MUSIC_VOLUME;
   music.src = BACKGROUND_MUSIC[currentMusicIndex];
   music.addEventListener('ended', () => {
     currentMusicIndex = (currentMusicIndex + 1) % BACKGROUND_MUSIC.length;
@@ -684,6 +739,7 @@ function esc(s) {
 
 function startSite() {
   observeCards();
+  setupInteractionSounds();
   setupBackgroundMusic();
   if (!ADMIN_PREVIEW && window._quizEnabled !== false) openQuizGate();
 }
