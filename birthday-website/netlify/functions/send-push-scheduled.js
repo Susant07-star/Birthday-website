@@ -8,6 +8,9 @@ const EVENING_SEND_HOUR = 17;
 const DAILY_SEND_MINUTE = 0;
 const FINAL_REMINDER_HOUR = 23;
 const FINAL_REMINDER_MINUTE = 55;
+const TEST_DATE = '2026-09-05';
+const TEST_HOUR = 14;
+const TEST_MINUTE = 38;
 
 const sb = createClient(process.env.SUPABASE_URL, process.env.SUPABASE_SERVICE_KEY);
 webpush.setVapidDetails(
@@ -16,7 +19,7 @@ webpush.setVapidDetails(
   process.env.VAPID_PRIVATE_KEY
 );
 
-exports.config = { schedule: '*/5 * * * *' };
+exports.config = { schedule: '* * * * *' };
 
 function localParts(date) {
   return new Intl.DateTimeFormat('en-GB', {
@@ -50,6 +53,14 @@ function getNotification(now, unlock) {
   const minutes = current.hour * 60 + current.minute;
   const unlockDay = dateNumber(unlockDate);
   const todayNumber = dateNumber(today);
+
+  if (dateKey(today) === TEST_DATE && current.hour === TEST_HOUR && current.minute === TEST_MINUTE) {
+    return {
+      key: `test-${TEST_DATE}-1438`,
+      title: '🧪 Test surprise notification',
+      body: 'This is the test message for the surprise notification system. 💕'
+    };
+  }
 
   if (todayNumber === unlockDay && current.hour === 0 && current.minute < 5) {
     return {
@@ -122,10 +133,13 @@ exports.handler = async () => {
   try {
     const { data: settings, error: settingsError } = await sb.from('site_settings').select('unlock_time').eq('id', 1).single();
     if (settingsError) throw settingsError;
-    if (!settings || !settings.unlock_time) return { statusCode: 200, body: 'Testing mode - no push sent' };
-
-    const notification = getNotification(new Date(), new Date(settings.unlock_time));
+    const now = new Date();
+    const unlock = settings && settings.unlock_time ? new Date(settings.unlock_time) : now;
+    const notification = getNotification(now, unlock);
     if (!notification) return { statusCode: 200, body: 'No notification due' };
+    if ((!settings || !settings.unlock_time) && !notification.key.startsWith('test-')) {
+      return { statusCode: 200, body: 'Testing mode - no push sent' };
+    }
     if (!(await claimDelivery(notification.key))) return { statusCode: 200, body: 'Already sent' };
 
     const result = await sendToSubscriptions(notification);
