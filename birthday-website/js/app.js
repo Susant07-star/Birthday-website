@@ -654,24 +654,40 @@ function urlBase64ToUint8Array(base64String) {
 async function setupNotificationUI() {
   // Only show button when locked (teaser phase) and browser supports push
   if (!('Notification' in window) || !('serviceWorker' in navigator)) return;
-  if (Notification.permission === 'granted') {
-    const saved = await saveSubscription();
-    if (!saved) {
-      const btn = document.getElementById('notifBtn');
-      if (btn && !IS_UNLOCKED) {
-        btn.textContent = '🔔 Repair Notifications';
-        btn.style.display = 'inline-block';
-      }
+  const btn = document.getElementById('notifBtn');
+  if (!window.isSecureContext || location.protocol === 'file:') {
+    if (btn && !IS_UNLOCKED) {
+      btn.textContent = '🔒 Open the HTTPS site to enable notifications';
+      btn.disabled = true;
+      btn.style.display = 'inline-block';
     }
     return;
   }
-  if (Notification.permission === 'denied') return;
-  const btn = document.getElementById('notifBtn');
+  if (Notification.permission === 'granted') {
+    const saved = await saveSubscription();
+    if (!saved && btn && !IS_UNLOCKED) {
+      btn.textContent = '🔔 Repair Notifications';
+      btn.style.display = 'inline-block';
+    }
+    return;
+  }
+  if (Notification.permission === 'denied') {
+    if (btn && !IS_UNLOCKED) {
+      btn.textContent = '🔒 Notifications blocked — allow them in site settings';
+      btn.disabled = true;
+      btn.style.display = 'inline-block';
+    }
+    return;
+  }
   if (btn && !IS_UNLOCKED) btn.style.display = 'inline-block';
 }
 
 async function enableNotifications() {
   const btn = document.getElementById('notifBtn');
+  if (!window.isSecureContext || location.protocol === 'file:') {
+    btn.textContent = '🔒 Notifications need the HTTPS site';
+    return;
+  }
   const perm = Notification.permission === 'granted'
     ? 'granted'
     : await Notification.requestPermission();

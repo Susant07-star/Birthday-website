@@ -494,12 +494,17 @@
 
 <script>
 if ('serviceWorker' in navigator) {
-  window.addEventListener('load', () => navigator.serviceWorker.register('/sw.js').catch(()=>{}));
+  window.addEventListener('load', () => {
+    navigator.serviceWorker.register('./sw.js').catch(error => {
+      window._serviceWorkerError = error;
+      console.warn('Notifications require the deployed HTTPS app:', error.message);
+    });
+  });
 }
 </script>
 <script src="js/supabase-config.js"></script>
 <script src="js/messages.js"></script>
-<script src="js/app.js?v=3"></script>
+<script src="js/app.js?v=4"></script>
 <script src="js/admin.js"></script>
 </body>
 </html>
