@@ -647,7 +647,7 @@ function setupInstallPrompt() {
 function urlBase64ToUint8Array(base64String) {
   const padding = '='.repeat((4 - base64String.length % 4) % 4);
   const base64 = (base64String + padding).replace(/-/g, '+').replace(/_/g, '/');
-  const raw = atob(base64 + padding);
+  const raw = atob(base64);
   return Uint8Array.from([...raw].map(c => c.charCodeAt(0)));
 }
 
@@ -696,7 +696,7 @@ async function enableNotifications() {
     btn.textContent = '⏳ Repairing notifications...';
     const saved = await saveSubscription(true);
     if (!saved) {
-      btn.textContent = '🔔 Repair Notifications';
+      btn.textContent = '🔔 Retry Notifications';
       btn.disabled = false;
       return;
     }
@@ -735,6 +735,9 @@ async function saveSubscription(repair = false) {
     return true;
   } catch (e) {
     console.error('push subscription failed:', e.message);
+    window._pushSubscriptionError = e.message;
+    const btn = document.getElementById('notifBtn');
+    if (btn) btn.title = e.message;
     return false;
   }
 }
