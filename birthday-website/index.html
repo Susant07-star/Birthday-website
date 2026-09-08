@@ -495,7 +495,16 @@
 <script>
 if ('serviceWorker' in navigator) {
   window.addEventListener('load', () => {
-    navigator.serviceWorker.register('./sw.js').catch(error => {
+    navigator.serviceWorker.register('./sw.js').then(registration => {
+      registration.update();
+      if (navigator.serviceWorker.controller) {
+        navigator.serviceWorker.addEventListener('controllerchange', () => {
+          if (window._serviceWorkerReloaded) return;
+          window._serviceWorkerReloaded = true;
+          window.location.reload();
+        }, { once: true });
+      }
+    }).catch(error => {
       window._serviceWorkerError = error;
       console.warn('Notifications require the deployed HTTPS app:', error.message);
     });
