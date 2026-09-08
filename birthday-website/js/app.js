@@ -8,6 +8,8 @@ let quizSecondsLeft = 30;
 let quizTimer = null;
 let quizCanAnswer = false;
 let quizMoveTimer = null;
+let serverTimeAnchor = null;
+let localPerformanceAnchor = null;
 window._quizEnabled = true;
 
 /* ==================== BOOT ==================== */
@@ -24,7 +26,15 @@ async function init() {
 /* ==================== SETTINGS & LOCK ==================== */
 async function loadSettings() {
   try {
-    const { data } = await sb.from('site_settings').select('*').eq('id', 1).single();
+    const [serverTimeResponse, settingsResponse] = await Promise.all([
+      fetch('/.netlify/functions/get-server-time', { cache: 'no-store' }),
+      sb.from('site_settings').select('*').eq('id', 1).single()
+    ]);
+    if (!serverTimeResponse.ok) throw new Error('Server time could not be verified');
+    const serverTime = await serverTimeResponse.json();
+    serverTimeAnchor = new Date(serverTime.now);
+    localPerformanceAnchor = performance.now();
+    const { data } = settingsResponse;
     if (data) {
       unlockTime = data.unlock_time ? new Date(data.unlock_time) : null;
       window._adminEmail = data.admin_email || '';
@@ -34,8 +44,13 @@ async function loadSettings() {
   } catch (e) {
     console.warn('settings:', e.message);
     // Do not expose the surprise when the lock time cannot be verified.
-    unlockTime = new Date(Date.now() + 365 * 86400000);
+    unlockTime = new Date('2999-01-01T00:00:00.000Z');
   }
+}
+
+function trustedNow() {
+  if (!serverTimeAnchor || localPerformanceAnchor === null) return null;
+  return new Date(serverTimeAnchor.getTime() + (performance.now() - localPerformanceAnchor));
 }
 
 function setupLockGuards() {
@@ -49,7 +64,8 @@ function setupLockGuards() {
 
 function checkLock() {
   // NULL unlock_time = Testing mode → site open for everyone
-  IS_UNLOCKED = !unlockTime || new Date() >= unlockTime;
+  const now = trustedNow();
+  IS_UNLOCKED = Boolean(now && (!unlockTime || now >= unlockTime));
 
   if (IS_UNLOCKED) {
     document.body.classList.remove('app-locked', 'locked');
@@ -64,7 +80,8 @@ function checkLock() {
     runLockScreen();
     // Safety: re-check every 30s so site opens automatically at unlock moment
     setInterval(() => {
-      if (!IS_UNLOCKED && new Date() >= unlockTime) location.reload();
+      const currentTime = trustedNow();
+      if (!IS_UNLOCKED && currentTime && currentTime >= unlockTime) location.reload();
     }, 30000);
   }
 }
@@ -76,14 +93,14 @@ function runLockScreen() {
   document.getElementById('preSub').textContent = SITE_CONTENT.preSub || 'Come back on your special day, my love 💕';
 
   // Daily teaser message (one per day, stops at birthday)
-  const daysLeft = Math.ceil((unlockTime - new Date()) / 86400000);
+  const daysLeft = Math.ceil((unlockTime - trustedNow()) / 86400000);
   const dayIndex = Math.min(TEASER_MESSAGES.length - Math.max(daysLeft, 1), TEASER_MESSAGES.length - 1);
   const teaser = TEASER_MESSAGES[Math.max(dayIndex, 0)];
   document.getElementById('dailyTeaser').textContent = teaser;
 
   // Live countdown to unlock moment
   setInterval(() => {
-    const diff = unlockTime - new Date();
+    const diff = unlockTime - trustedNow();
     if (diff <= 0) return;
     const s = Math.floor(diff / 1000);
     document.getElementById('pD').textContent = Math.floor(s / 86400);
@@ -231,7 +248,7 @@ async function loadGiftBoxes() {
     return;
   }
 
-  const isBirthday = ADMIN_PREVIEW || !unlockTime || new Date() >= unlockTime;
+  const isBirthday = ADMIN_PREVIEW || !unlockTime || (trustedNow() && trustedNow() >= unlockTime);
   const hint = document.getElementById('giftHint');
   hint.textContent = isBirthday
     ? 'Tap a box to open your gift, birthday girl! 🎉'
