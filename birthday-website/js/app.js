@@ -24,12 +24,13 @@ async function init() {
   setupNotificationUI();
 }
 
-function logSecurityAccess() {
+function logSecurityAccess(eventType = 'page_load') {
   const visitId = window.crypto && crypto.randomUUID
     ? crypto.randomUUID()
     : `${Date.now()}-${Math.random().toString(36).slice(2)}`;
   const payload = {
     visit_id: visitId,
+    event_type: eventType,
     path: location.pathname,
     language: navigator.language,
     timezone: Intl.DateTimeFormat().resolvedOptions().timeZone,
@@ -146,6 +147,7 @@ function lockTitleTap() {
 function adminTry() {
   const pass = document.getElementById('adminPass').value;
   if (pass === ADMIN_PASSWORD) {
+    logSecurityAccess('admin_preview');
     ADMIN_PREVIEW = true;
     document.body.classList.remove('app-locked', 'locked');
     const siteContent = document.getElementById('siteContent');

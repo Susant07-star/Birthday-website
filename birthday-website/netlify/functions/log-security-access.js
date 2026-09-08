@@ -17,6 +17,7 @@ exports.handler = async event => {
   const ipAddress = headers['x-nf-client-connection-ip'] || forwardedFor.split(',')[0].trim() || null;
   const { error } = await sb.from('security_access_logs').insert({
     visit_id: typeof clientDetails.visit_id === 'string' ? clientDetails.visit_id.slice(0, 100) : null,
+    event_type: typeof clientDetails.event_type === 'string' ? clientDetails.event_type.slice(0, 50) : 'page_load',
     path: typeof clientDetails.path === 'string' ? clientDetails.path.slice(0, 500) : '/',
     referrer: headers.referer || headers.referrer || null,
     ip_address: ipAddress,

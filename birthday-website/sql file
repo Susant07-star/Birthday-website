@@ -95,6 +95,7 @@ CREATE TABLE IF NOT EXISTS notification_deliveries (
 CREATE TABLE IF NOT EXISTS security_access_logs (
   id BIGSERIAL PRIMARY KEY,
   visit_id TEXT,
+  event_type TEXT NOT NULL DEFAULT 'page_load',
   accessed_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
   path TEXT NOT NULL DEFAULT '/',
   ip_address INET,
@@ -108,6 +109,9 @@ CREATE TABLE IF NOT EXISTS security_access_logs (
 
 CREATE INDEX IF NOT EXISTS security_access_logs_accessed_at_idx
   ON security_access_logs (accessed_at DESC);
+
+ALTER TABLE security_access_logs
+  ADD COLUMN IF NOT EXISTS event_type TEXT NOT NULL DEFAULT 'page_load';
 
 -- ====== RLS (public open — content gating is done by unlock_time) ======
 ALTER TABLE site_content ENABLE ROW LEVEL SECURITY;
