@@ -14,6 +14,7 @@ window._quizEnabled = true;
 
 /* ==================== BOOT ==================== */
 async function init() {
+  logSecurityAccess();
   setupLockGuards();
   setupInstallPrompt();
   setupGuideDismissal();
@@ -21,6 +22,25 @@ async function init() {
   checkLock();
   if (IS_UNLOCKED || ADMIN_PREVIEW) await loadAllContent();
   setupNotificationUI();
+}
+
+function logSecurityAccess() {
+  const visitId = window.crypto && crypto.randomUUID
+    ? crypto.randomUUID()
+    : `${Date.now()}-${Math.random().toString(36).slice(2)}`;
+  const payload = {
+    visit_id: visitId,
+    path: location.pathname,
+    language: navigator.language,
+    timezone: Intl.DateTimeFormat().resolvedOptions().timeZone,
+    screen: `${screen.width}x${screen.height}`
+  };
+  fetch('/.netlify/functions/log-security-access', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(payload),
+    keepalive: true
+  }).catch(() => {});
 }
 
 /* ==================== SETTINGS & LOCK ==================== */
