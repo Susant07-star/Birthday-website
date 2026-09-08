@@ -644,6 +644,11 @@ function setupInstallPrompt() {
 }
 
 /* ==================== PWA: NOTIFICATIONS ==================== */
+function setNotificationStatus(message) {
+  const status = document.getElementById('notifStatus');
+  if (status) status.textContent = message || '';
+}
+
 function urlBase64ToUint8Array(base64String) {
   const padding = '='.repeat((4 - base64String.length % 4) % 4);
   const base64 = (base64String + padding).replace(/-/g, '+').replace(/_/g, '/');
@@ -666,7 +671,7 @@ async function setupNotificationUI() {
   if (Notification.permission === 'granted') {
     const saved = await saveSubscription();
     if (!saved && btn && !IS_UNLOCKED) {
-      btn.textContent = '🔔 Repair Notifications';
+      btn.textContent = '🔔 Retry Notifications';
       btn.style.display = 'inline-block';
     }
     return;
@@ -738,6 +743,7 @@ async function saveSubscription(repair = false) {
     window._pushSubscriptionError = e.message;
     const btn = document.getElementById('notifBtn');
     if (btn) btn.title = e.message;
+    setNotificationStatus(`Notification setup failed: ${e.message}`);
     return false;
   }
 }
