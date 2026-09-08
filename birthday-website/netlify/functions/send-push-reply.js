@@ -20,8 +20,7 @@ exports.handler = async (event) => {
   const { data: subs } = await sb.from('push_subscriptions').select('endpoint, keys');
   const payload = JSON.stringify({
     title: '💌 She replied to you!',
-    body: (reply || '').slice(0, 120),
-    url: '/'
+    body: (reply || '').slice(0, 120)
   });
   await Promise.allSettled((subs || []).map(s => webpush.sendNotification({ endpoint: s.endpoint, keys: s.keys }, payload)));
 

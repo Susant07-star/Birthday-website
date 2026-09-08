@@ -41,5 +41,22 @@ def render_icon(size):
     return image
 
 
+def render_badge(size):
+    scale = size / 512
+    image = Image.new("RGBA", (size, size), (0, 0, 0, 0))
+    draw = ImageDraw.Draw(image)
+    points = []
+    for step in range(361):
+        angle = step * math.pi / 180
+        x = 16 * math.sin(angle) ** 3
+        y = -(13 * math.cos(angle) - 5 * math.cos(2 * angle) - 2 * math.cos(3 * angle) - math.cos(4 * angle))
+        points.append((round((256 + x * 9.5) * scale), round((245 + y * 7.8) * scale)))
+    draw.polygon(points, fill=(255, 255, 255, 255))
+    draw.line((round(256 * scale), round(402 * scale), round(256 * scale), round(315 * scale)), fill=(255, 255, 255, 255), width=max(2, round(20 * scale)))
+    return image
+
+
 for size, filename in ((180, "apple-touch-icon.png"), (192, "icon-192.png"), (512, "icon-512.png")):
     render_icon(size).save(ROOT / "icons" / filename, optimize=True)
+
+render_badge(96).save(ROOT / "icons" / "badge-96.png", optimize=True)

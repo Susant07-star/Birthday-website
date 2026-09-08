@@ -1,7 +1,7 @@
 const CACHE = 'bday-v3';
 const ASSETS = [
   '/', '/index.html', '/css/style.css', '/js/messages.js', '/manifest.json',
-  '/icons/favicon.svg', '/icons/icon-192.png', '/icons/icon-512.png', '/icons/apple-touch-icon.png'
+  '/icons/favicon.svg', '/icons/icon-192.png', '/icons/icon-512.png', '/icons/apple-touch-icon.png', '/icons/badge-96.png'
 ];
 
 self.addEventListener('install', e => {
@@ -38,16 +38,16 @@ self.addEventListener('push', e => {
     self.registration.showNotification(data.title, {
       body: data.body,
       icon: '/icons/icon-192.png',
-      badge: '/icons/icon-192.png',
+      badge: '/icons/badge-96.png',
       vibrate: [200, 100, 200],
-      data: { url: '/' }
+      tag: 'birthday-surprise'
     })
   );
 });
 
 self.addEventListener('notificationclick', e => {
   e.notification.close();
-  const target = new URL(e.notification.data?.url || '/', self.location.origin).href;
+  const target = new URL('/', self.location.origin).href;
   e.waitUntil(
     clients.matchAll({ type: 'window', includeUncontrolled: true }).then(async windows => {
       const existing = windows.find(client => client.url.startsWith(self.location.origin));
