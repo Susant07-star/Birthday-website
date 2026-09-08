@@ -8,9 +8,9 @@ const EVENING_SEND_HOUR = 17;
 const DAILY_SEND_MINUTE = 0;
 const FINAL_REMINDER_HOUR = 23;
 const FINAL_REMINDER_MINUTE = 55;
-const TEST_DATE = '2026-09-05';
+const TEST_DATE = '2026-09-08';
 const TEST_HOUR = 14;
-const TEST_MINUTE = 0;
+const TEST_MINUTE = 12;
 const TEST_WINDOW_MINUTES = 5;
 
 const sb = createClient(process.env.SUPABASE_URL, process.env.SUPABASE_SERVICE_KEY);
@@ -60,8 +60,8 @@ function getNotification(now, unlock) {
   if (dateKey(today) === TEST_DATE && testMinute >= testStartMinute && testMinute < testStartMinute + TEST_WINDOW_MINUTES) {
     return {
       key: `test-${TEST_DATE}-${String(TEST_HOUR).padStart(2, '0')}${String(TEST_MINUTE).padStart(2, '0')}`,
-      title: '🧪 Test surprise notification',
-      body: 'This is the test message for the surprise notification system. 💕'
+      title: '🧪 Testing notification',
+      body: 'Testing message by developer Susant.'
     };
   }
 
